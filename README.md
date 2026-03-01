@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MOASS Admin Dashboard
 
-## Getting Started
+Next.js 16 (App Router) + MySQL (Prisma) অ্যাডমিন ড্যাশবোর্ড। অথেনটিকেশন, অর্ডার, প্রোডাক্ট, ক্যাটাগরি, ব্যানার, কাস্টমার, কুপন, ইনভেন্টরি, শিপিং, রিপোর্ট ও সেটিংস।
 
-First, run the development server:
+## স্থানীয় চালানোর ধাপ
+
+1. **Environment**
+   - `.env.example` কপি করে `.env` বানান
+   - `DATABASE_URL` – MySQL connection string (প্রোডে প্রয়োজনে `?socket=/tmp/mysql.sock`)
+   - `AUTH_SECRET` – JWT সিক্রেট (`openssl rand -base64 32`)
+
+2. **ডাটাবেস**
+   ```bash
+   npx prisma migrate deploy
+   # অথবা হোস্টিংগার/ম্যানুয়াল: scripts/hostinger-create-tables.sql চালান, তারপর:
+   # npx prisma migrate resolve --applied "20260302000000_init"
+   npm run db:seed
+   ```
+
+3. **ডেভ সার্ভার**
+   ```bash
+   npm run dev
+   ```
+   ব্রাউজারে [http://localhost:3000](http://localhost:3000)। প্রথম অ্যাডমিন: `/auth/v2/register` দিয়ে রেজিস্টার অথবা সিড থেকে `admin@example.com` / `admin123`।
+
+## প্রোডাকশন
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+অথবা PM2:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pm2 start npm --name "moass-admin" -- start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## সংক্ষিপ্ত চেকলিস্ট
 
-## Learn More
+- [ ] `DATABASE_URL` সেট (MySQL, প্রয়োজনে `?socket=/tmp/mysql.sock`)
+- [ ] `AUTH_SECRET` সেট (টেমপ্লেট মান না, নিজে জেনারেট)
+- [ ] MySQL এ টেবিল তৈরি (`prisma migrate deploy` অথবা `scripts/hostinger-create-tables.sql`)
+- [ ] (ঐচ্ছিক) `npm run db:seed`
+- [ ] `npm run build` ও `npm start` / PM2
+- [ ] প্রথম ইউজার রেজিস্টার বা সিড থেকে অ্যাডমিন
 
-To learn more about Next.js, take a look at the following resources:
+## রাউটস
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| বিভাগ        | রাউট |
+|-------------|------|
+| লগইন/রেজিস্টার | `/auth/v2/login`, `/auth/v2/register` |
+| ড্যাশবোর্ড   | `/` |
+| অর্ডার      | `/orders`, `/orders/[id]` |
+| প্রোডাক্ট   | `/products`, `/products/new`, `/products/[id]/edit` |
+| ক্যাটাগরি   | `/categories` |
+| ব্যানার     | `/banners` |
+| কাস্টমার    | `/customers`, `/customers/[id]` |
+| কুপন       | `/coupons` |
+| ইনভেন্টরি   | `/inventory` |
+| শিপিং      | `/shipping` |
+| রিপোর্ট     | `/reports` |
+| সেটিংস     | `/settings` |
+| অ্যাকাউন্ট   | `/account` |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+API: `/api/auth/*`, `/api/admin/*`, `/api/ecommerce/*`, `/api/upload` – সব অ্যাডমিন API সেশন চেক দ্বারা প্রটেক্টেড।
