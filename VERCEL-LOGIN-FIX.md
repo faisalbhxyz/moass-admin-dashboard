@@ -85,3 +85,13 @@ mysql://YOUR_MYSQL_USER:YOUR_MYSQL_PASSWORD@YOUR_MYSQL_HOST:3306/YOUR_DATABASE_N
    - রিডিপ্লয়ের পর আবার লগইন চেষ্টা করুন।
 
 এইগুলো ঠিক থাকলে সাধারণত `PrismaClientInitializationError` ও লগইন ৫০০ চলে যায়।
+
+---
+
+## ৭. প্রোডাক্ট ইমেজ আপলোড (Vercel এ কাজ না করলে)
+
+Vercel-এ ফাইলসিস্টেম রিড-অনলি, তাই `public/uploads`-এ লিখলে ইমেজ আপলোড ফেইল করে। **Vercel Blob** ব্যবহার করতে হবে।
+
+1. **Vercel Dashboard** → আপনার প্রজেক্ট → **Storage** → **Create Database** অথবা **Blob** স্টোর তৈরি করুন।
+2. ব্লব স্টোর কানেক্ট করলে **BLOB_READ_WRITE_TOKEN** অটো এড হয়। **Redeploy** করুন।
+3. এর পর অ্যাডমিন ড্যাশবোর্ড থেকে প্রোডাক্ট ইমেজ আপলোড কাজ করবে (ইমেজ Vercel Blob-এ সেভ হবে এবং URL রিটার্ন হবে)।

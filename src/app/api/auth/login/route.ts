@@ -22,11 +22,22 @@ export async function POST(request: NextRequest) {
     console.error("Login error:", e);
     const err = e instanceof Error ? e : new Error(String(e));
     const msg = err.message || "";
-    const isDbError = msg.includes("Can't reach database") || msg.includes("connect") || msg.includes("Unknown table");
+    const isPrismaInit =
+      err.constructor?.name === "PrismaClientInitializationError" ||
+      msg.includes("Invalid `prisma`") ||
+      msg.includes("PrismaClientInitializationError");
+    const isDbError =
+      isPrismaInit ||
+      msg.includes("Can't reach database") ||
+      msg.includes("connect") ||
+      msg.includes("Unknown table") ||
+      msg.includes("denied access");
     const isAuthSecret = msg.includes("AUTH_SECRET");
     let message = "Login failed";
     if (process.env.NODE_ENV === "development")
       message = msg;
+    else if (isPrismaInit)
+      message = "Database not configured. Set DATABASE_URL in Vercel (and run migrations).";
     else if (isDbError)
       message = "Database not reachable. Check DATABASE_URL and that tables exist.";
     else if (isAuthSecret)
