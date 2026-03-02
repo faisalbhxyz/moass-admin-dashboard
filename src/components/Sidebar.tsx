@@ -43,19 +43,20 @@ function LogoutButton() {
   );
 }
 
+// Logical order: Dashboard → Orders → Transactions → Products → Categories → Inventory → Customers → Coupons → Banners → Homepage Sections → Menus → Pages → Shipping → Payment Methods → Reports → Settings
 const mainNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/orders", label: "Orders", icon: ShoppingCart },
   { href: "/transactions", label: "Transactions", icon: Receipt },
   { href: "/products", label: "Products", icon: Package },
   { href: "/categories", label: "Categories", icon: FolderTree },
+  { href: "/inventory", label: "Inventory", icon: Warehouse, badgeKey: "lowStock" },
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/coupons", label: "Coupons", icon: Ticket },
   { href: "/banners", label: "Banners", icon: Image },
   { href: "/homepage/sections", label: "Homepage Sections", icon: LayoutList },
   { href: "/menus", label: "Menus", icon: List },
   { href: "/pages", label: "Pages", icon: FileText },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/coupons", label: "Coupons", icon: Ticket },
-  { href: "/inventory", label: "Inventory", icon: Warehouse, badgeKey: "lowStock" },
   { href: "/shipping", label: "Shipping", icon: Truck },
   { href: "/payment-methods", label: "Payment Methods", icon: CreditCard },
   { href: "/reports", label: "Reports", icon: BarChart3 },
