@@ -1,20 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/Modal";
-
-export type PaymentMethodRow = {
-  id: string;
-  name: string;
-  type: string;
-  isActive: boolean;
-  accountNumber: string | null;
-  instructions: string | null;
-  logoUrl: string | null;
-  sortOrder: number;
-};
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import {
+  usePaymentMethodsQuery,
+  useSavePaymentMethodMutation,
+  useTogglePaymentMethodMutation,
+  useDeletePaymentMethodMutation,
+  type PaymentMethodRow,
+} from "./hooks/use-payment-methods";
 
 const inputClass =
   "h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900";
@@ -43,13 +39,16 @@ export function PaymentMethodsClient({
 }: {
   initialMethods: PaymentMethodRow[];
 }) {
-  const router = useRouter();
-  const [methods, setMethods] = useState(initialMethods);
+  const { methods } = usePaymentMethodsQuery(initialMethods);
+  const saveMethod = useSavePaymentMethodMutation();
+  const toggleMethod = useTogglePaymentMethodMutation();
+  const deleteMethod = useDeletePaymentMethodMutation();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
-  const [saving, setSaving] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const saving = saveMethod.isPending;
 
   function openAdd() {
     setEditingId(null);
@@ -76,69 +75,30 @@ export function PaymentMethodsClient({
     setForm(emptyForm);
   }
 
-  async function save() {
+  function save() {
     if (!form.name.trim()) return;
-    setSaving(true);
-    try {
-      const body = {
-        name: form.name.trim(),
-        type: form.type,
-        accountNumber: form.type === "MANUAL" ? form.accountNumber.trim() || null : null,
-        instructions: form.type === "MANUAL" ? form.instructions.trim() || null : null,
-        logoUrl: form.logoUrl.trim() || null,
-        sortOrder: parseInt(form.sortOrder, 10) || 0,
-      };
-      if (editingId) {
-        const res = await fetch(`/api/admin/payment-methods/${editingId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) throw new Error("Update failed");
-        const updated = await res.json();
-        setMethods((prev) =>
-          prev.map((p) => (p.id === editingId ? { ...p, ...updated } : p))
-        );
-      } else {
-        const res = await fetch("/api/admin/payment-methods", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) throw new Error("Create failed");
-        const created = await res.json();
-        setMethods((prev) => [...prev, created].sort((a, b) => a.sortOrder - b.sortOrder));
-      }
-      closeModal();
-      router.refresh();
-    } finally {
-      setSaving(false);
-    }
+    const body = {
+      name: form.name.trim(),
+      type: form.type,
+      accountNumber: form.type === "MANUAL" ? form.accountNumber.trim() || null : null,
+      instructions: form.type === "MANUAL" ? form.instructions.trim() || null : null,
+      logoUrl: form.logoUrl.trim() || null,
+      sortOrder: parseInt(form.sortOrder, 10) || 0,
+    };
+    saveMethod.mutate(
+      { id: editingId ?? undefined, ...body },
+      { onSuccess: closeModal }
+    );
   }
 
-  async function toggleActive(id: string) {
+  function toggleActive(id: string) {
     setTogglingId(id);
-    try {
-      const res = await fetch(`/api/admin/payment-methods/${id}/toggle`, {
-        method: "PATCH",
-      });
-      if (!res.ok) throw new Error("Toggle failed");
-      const updated = await res.json();
-      setMethods((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, isActive: updated.isActive } : p))
-      );
-      router.refresh();
-    } finally {
-      setTogglingId(null);
-    }
+    toggleMethod.mutate(id, { onSettled: () => setTogglingId(null) });
   }
 
-  async function remove(id: string) {
-    if (!confirm("Delete this payment method? Orders using it will keep the reference but the method will be removed."))
-      return;
-    await fetch(`/api/admin/payment-methods/${id}`, { method: "DELETE" });
-    setMethods((prev) => prev.filter((p) => p.id !== id));
-    router.refresh();
+  function handleConfirmDelete() {
+    if (!deleteTargetId) return;
+    deleteMethod.mutate(deleteTargetId, { onSuccess: () => setDeleteTargetId(null) });
   }
 
   const isManual = form.type === "MANUAL";
@@ -204,7 +164,7 @@ export function PaymentMethodsClient({
                       <Button
                         type="button"
                         variant="destructive"
-                        onClick={() => remove(m.id)}
+                        onClick={() => setDeleteTargetId(m.id)}
                       >
                         Delete
                       </Button>
@@ -216,6 +176,14 @@ export function PaymentMethodsClient({
           </table>
         </div>
       </div>
+
+      <DeleteConfirmModal
+        open={!!deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={handleConfirmDelete}
+        description="Delete this payment method? Orders using it will keep the reference but the method will be removed."
+        loading={deleteMethod.isPending}
+      />
 
       <Modal
         open={modalOpen}

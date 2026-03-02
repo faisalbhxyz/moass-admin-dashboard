@@ -19,6 +19,7 @@ const updateSchema = z.object({
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
   title: z.string().min(1).optional(),
   content: z.string().optional(),
+  active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });
 

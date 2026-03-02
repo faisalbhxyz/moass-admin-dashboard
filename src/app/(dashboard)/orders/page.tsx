@@ -80,6 +80,7 @@ export default async function OrdersPage({
           currentStatus={status ?? "all"}
           currentSearch={search ?? ""}
           summary={{ totalOrders, newOrders, completedOrders, cancelledOrders }}
+          summaryDateLabel="Last 365 days"
           pagination={{ currentPage, totalPages, totalCount }}
         />
       </div>

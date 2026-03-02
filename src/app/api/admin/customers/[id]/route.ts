@@ -37,3 +37,14 @@ export async function PATCH(
   const customer = await prisma.customer.update({ where: { id }, data });
   return NextResponse.json(customer);
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
+  const { id } = await params;
+  await prisma.customer.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
+}

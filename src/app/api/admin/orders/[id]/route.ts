@@ -36,3 +36,14 @@ export async function PATCH(
   });
   return NextResponse.json(order);
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
+  const { id } = await params;
+  await prisma.order.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
+}

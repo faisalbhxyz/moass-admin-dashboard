@@ -175,11 +175,43 @@ export function useCreateSectionMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createSection,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["homepage-sections"] });
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["homepage-sections"] });
+      const previous = qc.getQueryData<{ sections: Section[] }>(["homepage-sections"]);
+      const optimistic: Section = {
+        id: `temp-${Date.now()}`,
+        key: vars.key,
+        title: vars.title,
+        mode: "auto",
+        is_active: true,
+        pinned_count: 0,
+        max_items: 10,
+        config: { mode: "auto", max_items: 10, auto_days: 7, auto_category: null, is_active: true, pinned_product_ids: [] },
+      };
+      qc.setQueryData<{ sections: Section[] }>(["homepage-sections"], (old) => ({
+        sections: old ? [...old.sections, optimistic] : [optimistic],
+      }));
+      return { previous };
+    },
+    onError: (e: Error, _vars, context) => {
+      if (context?.previous) qc.setQueryData(["homepage-sections"], context.previous);
+      toast.error(e.message);
+    },
+    onSuccess: (data) => {
+      const serverSection = data.section as Section;
+      qc.setQueryData<{ sections: Section[] }>(["homepage-sections"], (old) => {
+        if (!old) return { sections: [serverSection] };
+        const idx = old.sections.findIndex((s) => s.id.startsWith("temp-"));
+        if (idx === -1) return { ...old, sections: [...old.sections, serverSection] };
+        const next = [...old.sections];
+        next[idx] = serverSection;
+        return { sections: next };
+      });
       toast.success("Section added");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["homepage-sections"] });
+    },
   });
 }
 
@@ -200,10 +232,19 @@ export function useDeleteSectionMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteSection,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["homepage-sections"] });
-      toast.success("Section deleted");
+    onMutate: async (key) => {
+      await qc.cancelQueries({ queryKey: ["homepage-sections"] });
+      const previous = qc.getQueryData<{ sections: Section[] }>(["homepage-sections"]);
+      qc.setQueryData<{ sections: Section[] }>(["homepage-sections"], (old) =>
+        old ? { sections: old.sections.filter((s) => s.key !== key) } : old
+      );
+      return { previous };
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error, _key, context) => {
+      if (context?.previous) qc.setQueryData(["homepage-sections"], context.previous);
+      toast.error(e.message);
+    },
+    onSuccess: () => toast.success("Section deleted"),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["homepage-sections"] }),
   });
 }

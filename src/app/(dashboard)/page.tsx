@@ -171,8 +171,8 @@ export default async function DashboardPage({
     <div className="min-h-full">
       <TopBar
         breadcrumbs={[{ label: "Dashboard" }]}
-        title="Welcome Back!"
-        description="Some explanation here on dashboard overview"
+        title="Welcome back"
+        description="Revenue, orders, and stock at a glance. Use filters to change the date range."
         actions={
           <Suspense fallback={<div className="h-10 w-64 animate-pulse rounded-lg bg-gray-200" />}>
             <DashboardDateFilter

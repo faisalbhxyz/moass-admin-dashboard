@@ -3,22 +3,49 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
-import { ProductActions } from "./ProductActions";
+import { ProductsTable } from "./ProductsTable";
 
-export default async function ProductsPage() {
-  const [user, products] = await Promise.all([
-    getCurrentUser(),
+const PAGE_SIZE = 20;
+
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; search?: string }>;
+}) {
+  const [user, params] = await Promise.all([getCurrentUser(), searchParams]);
+  if (!user) redirect("/auth/v2/login");
+
+  const currentPage = Math.max(1, parseInt(params.page ?? "1", 10));
+  const search = params.search?.trim() || undefined;
+
+  const where = search
+    ? {
+        OR: [
+          { name: { contains: search } },
+          { sku: { contains: search } },
+        ],
+      }
+    : {};
+
+  const [products, totalCount] = await Promise.all([
     prisma.product.findMany({
-      take: 50,
+      where,
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       include: { categories: true },
     }),
+    prisma.product.count({ where }),
   ]);
-  if (!user) redirect("/auth/v2/login");
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
+
   return (
     <div className="min-h-full">
       <TopBar
         breadcrumbs={[{ label: "Products" }]}
+        title="Products"
+        description="Manage your catalog. Search by name or SKU."
         actions={
           <Link
             href="/products/new"
@@ -29,68 +56,11 @@ export default async function ProductsPage() {
         }
       />
       <div className="p-6">
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="h-12 w-12 px-2 text-left"></th>
-                  <th className="h-12 px-4 text-left">Name</th>
-                  <th className="h-12 px-4 text-left">Category</th>
-                  <th className="h-12 px-4 text-right">Price</th>
-                  <th className="h-12 px-4 text-right">Stock</th>
-                  <th className="h-12 px-4 text-left">Status</th>
-                  <th className="h-12 w-24 px-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => (
-                  <tr key={p.id} className="group border-b border-gray-100 transition-colors duration-150 hover:bg-gray-50">
-                    <td className="h-12 px-2">
-                      <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md bg-gray-100">
-                        {p.images ? (
-                          <img
-                            src={p.images.split(",")[0].trim()}
-                            alt=""
-                            className="h-10 w-10 object-cover"
-                          />
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="h-12 px-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{p.name}</p>
-                        {p.sku && <p className="text-xs text-gray-500">{p.sku}</p>}
-                      </div>
-                    </td>
-                    <td className="h-12 px-4 text-gray-700">{p.categories?.length ? p.categories.map((c) => c.name).join(", ") : "—"}</td>
-                    <td className="h-12 px-4 text-right font-medium text-gray-900">
-                      ৳{Number(p.price).toLocaleString()}
-                    </td>
-                    <td className="h-12 px-4 text-right text-gray-700">{p.stock}</td>
-                    <td className="h-12 px-4">
-                      {p.published ? (
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                          Published
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                          Draft
-                        </span>
-                      )}
-                    </td>
-                    <td className="h-12 px-2 text-right">
-                      <ProductActions id={p.id} name={p.name} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {products.length === 0 && (
-            <div className="py-12 text-center text-sm text-gray-500">No products yet.</div>
-          )}
-        </div>
+        <ProductsTable
+          products={products}
+          currentSearch={search ?? ""}
+          pagination={{ currentPage, totalPages, totalCount }}
+        />
       </div>
     </div>
   );

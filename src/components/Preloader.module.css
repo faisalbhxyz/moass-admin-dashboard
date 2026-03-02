@@ -1,0 +1,37 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  animation: preloaderSpin 0.9s linear infinite;
+}
+
+.bar {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 4px;
+  height: 42%;
+  margin-left: -2px;
+  background: #374151;
+  border-radius: 3px;
+  transform-origin: center 100%;
+}
+
+@keyframes preloaderSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

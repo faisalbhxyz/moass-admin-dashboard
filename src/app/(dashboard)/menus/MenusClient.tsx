@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import {
   List,
@@ -12,23 +11,18 @@ import {
   ChevronRight,
   Link as LinkIcon,
 } from "lucide-react";
-
-type MenuItemJson = {
-  id: string;
-  menuGroupId: string;
-  label: string;
-  link: string;
-  sortOrder: number;
-};
-
-type MenuGroupJson = {
-  id: string;
-  key: string;
-  label: string;
-  placement: string;
-  sortOrder: number;
-  items?: MenuItemJson[];
-};
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import {
+  useMenuGroupsQuery,
+  useCreateMenuGroupMutation,
+  useUpdateMenuGroupMutation,
+  useDeleteMenuGroupMutation,
+  useCreateMenuItemMutation,
+  useUpdateMenuItemMutation,
+  useDeleteMenuItemMutation,
+  type MenuGroupJson,
+  type MenuItemJson,
+} from "./hooks/use-menus";
 
 const inputClass =
   "h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900";
@@ -45,11 +39,16 @@ export function MenusClient({
   initialCategories?: CategoryOption[];
   initialPages?: PageOption[];
 }) {
-  const router = useRouter();
-  const [groups, setGroups] = useState(initialGroups);
+  const { groups } = useMenuGroupsQuery(initialGroups);
+  const createGroupMutation = useCreateMenuGroupMutation();
+  const updateGroupMutation = useUpdateMenuGroupMutation();
+  const deleteGroupMutation = useDeleteMenuGroupMutation();
+  const createItemMutation = useCreateMenuItemMutation();
+  const updateItemMutation = useUpdateMenuItemMutation();
+  const deleteItemMutation = useDeleteMenuItemMutation();
   const [categories] = useState<CategoryOption[]>(initialCategories);
   const [pages] = useState<PageOption[]>(initialPages);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(groups.map((g) => g.id)));
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(initialGroups.map((g) => g.id)));
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [addItemGroupId, setAddItemGroupId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
@@ -60,8 +59,8 @@ export function MenusClient({
   const [newLabel, setNewLabel] = useState("");
   const [newPlacement, setNewPlacement] = useState<"header" | "footer">("footer");
   const [newItemType, setNewItemType] = useState<"category" | "page" | "custom">("custom");
-  const [newItemCategorySlug, setNewItemCategorySlug] = useState("");
-  const [newItemPageSlug, setNewItemPageSlug] = useState("");
+  const [newItemCategorySlugs, setNewItemCategorySlugs] = useState<string[]>([]);
+  const [newItemPageSlugs, setNewItemPageSlugs] = useState<string[]>([]);
   const [newItemLabel, setNewItemLabel] = useState("");
   const [newItemLink, setNewItemLink] = useState("");
   const [editGroupLabel, setEditGroupLabel] = useState("");
@@ -69,199 +68,177 @@ export function MenusClient({
   const [editGroupPlacement, setEditGroupPlacement] = useState<"header" | "footer">("footer");
   const [editItemLabel, setEditItemLabel] = useState("");
   const [editItemLink, setEditItemLink] = useState("");
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<
+    { type: "group"; id: string } | { type: "item"; id: string; menuGroupId: string } | null
+  >(null);
+  const saving =
+    createGroupMutation.isPending ||
+    updateGroupMutation.isPending ||
+    createItemMutation.isPending ||
+    updateItemMutation.isPending;
+  const deleting = deleteGroupMutation.isPending || deleteItemMutation.isPending;
 
-  async function createGroup() {
+  function createGroup() {
     if (!newKey.trim() || !newLabel.trim()) {
       setError("Key and label required.");
       return;
     }
-    setSaving(true);
     setError("");
-    try {
-      const res = await fetch("/api/admin/menu-groups", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key: newKey.trim(),
-          label: newLabel.trim(),
-          placement: newPlacement,
-          sortOrder: groups.length,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to create group.");
-        return;
+    createGroupMutation.mutate(
+      { key: newKey.trim(), label: newLabel.trim(), placement: newPlacement, sortOrder: groups.length },
+      {
+        onSuccess: () => {
+          setShowAddGroup(false);
+          setNewKey("");
+          setNewLabel("");
+          setNewPlacement("footer");
+        },
+        onError: (e) => setError(e.message),
       }
-      setGroups((prev) => [...prev, { ...data, items: [] }]);
-      setShowAddGroup(false);
-      setNewKey("");
-      setNewLabel("");
-      setNewPlacement("footer");
-      router.refresh();
-    } finally {
-      setSaving(false);
-    }
+    );
   }
 
-  async function updateGroup(id: string) {
+  function updateGroup(id: string) {
     if (!editGroupKey.trim() || !editGroupLabel.trim()) {
       setError("Key and label required.");
       return;
     }
-    setSaving(true);
     setError("");
-    try {
-      const res = await fetch(`/api/admin/menu-groups/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key: editGroupKey.trim(),
-          label: editGroupLabel.trim(),
-          placement: editGroupPlacement,
-        }),
+    updateGroupMutation.mutate(
+      { id, key: editGroupKey.trim(), label: editGroupLabel.trim(), placement: editGroupPlacement },
+      { onSuccess: () => setEditingGroupId(null), onError: (e) => setError(e.message) }
+    );
+  }
+
+  function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === "group") {
+      deleteGroupMutation.mutate(deleteTarget.id, {
+        onSuccess: () => {
+          setDeleteTarget(null);
+          setEditingGroupId(null);
+          setAddItemGroupId(null);
+        },
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to update group.");
-        return;
-      }
-      setGroups((prev) =>
-        prev.map((g) => (g.id === id ? { ...data, items: g.items ?? [] } : g))
-      );
-      setEditingGroupId(null);
-      router.refresh();
-    } finally {
-      setSaving(false);
+    } else {
+      deleteItemMutation.mutate(deleteTarget.id, {
+        onSuccess: () => {
+          setDeleteTarget(null);
+          setEditingItemId(null);
+        },
+      });
     }
   }
 
-  async function deleteGroup(id: string) {
-    if (!confirm("Delete this menu group and all its items?")) return;
-    await fetch(`/api/admin/menu-groups/${id}`, { method: "DELETE" });
-    setGroups((prev) => prev.filter((g) => g.id !== id));
-    setEditingGroupId(null);
-    setAddItemGroupId(null);
-    router.refresh();
-  }
-
-  async function createItem(menuGroupId: string) {
-    let label: string;
-    let link: string;
+  async function createItems(menuGroupId: string) {
+    const baseSortOrder = groups.find((g) => g.id === menuGroupId)?.items?.length ?? 0;
     if (newItemType === "category") {
-      const cat = categories.find((c) => c.slug === newItemCategorySlug);
-      if (!cat) {
-        setError("Select a category.");
+      if (newItemCategorySlugs.length === 0) {
+        setError("Select at least one category.");
         return;
       }
-      label = cat.name;
-      link = `/categories/${cat.slug}`;
+      setError("");
+      try {
+        for (let i = 0; i < newItemCategorySlugs.length; i++) {
+          const slug = newItemCategorySlugs[i];
+          const cat = categories.find((c) => c.slug === slug);
+          if (!cat) continue;
+          await createItemMutation.mutateAsync({
+            menuGroupId,
+            label: cat.name,
+            link: `/categories/${cat.slug}`,
+            sortOrder: baseSortOrder + i,
+          });
+        }
+        setAddItemGroupId(null);
+        setNewItemType("custom");
+        setNewItemCategorySlugs([]);
+        setNewItemPageSlugs([]);
+        setNewItemLabel("");
+        setNewItemLink("");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to add items.");
+      }
     } else if (newItemType === "page") {
-      const page = pages.find((p) => p.slug === newItemPageSlug);
-      if (!page) {
-        setError("Select a page.");
+      if (newItemPageSlugs.length === 0) {
+        setError("Select at least one page.");
         return;
       }
-      label = page.title;
-      link = `/page/${page.slug}`;
+      setError("");
+      try {
+        for (let i = 0; i < newItemPageSlugs.length; i++) {
+          const slug = newItemPageSlugs[i];
+          const page = pages.find((p) => p.slug === slug);
+          if (!page) continue;
+          await createItemMutation.mutateAsync({
+            menuGroupId,
+            label: page.title,
+            link: `/page/${page.slug}`,
+            sortOrder: baseSortOrder + i,
+          });
+        }
+        setAddItemGroupId(null);
+        setNewItemType("custom");
+        setNewItemCategorySlugs([]);
+        setNewItemPageSlugs([]);
+        setNewItemLabel("");
+        setNewItemLink("");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to add items.");
+      }
     } else {
       if (!newItemLabel.trim() || !newItemLink.trim()) {
         setError("Label and link required.");
         return;
       }
-      label = newItemLabel.trim();
-      link = newItemLink.trim();
-    }
-    setSaving(true);
-    setError("");
-    try {
-      const res = await fetch("/api/admin/menu-items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      setError("");
+      createItemMutation.mutate(
+        {
           menuGroupId,
-          label,
-          link,
-          sortOrder: groups.find((g) => g.id === menuGroupId)?.items?.length ?? 0,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to add item.");
-        return;
-      }
-      setGroups((prev) =>
-        prev.map((g) =>
-          g.id === menuGroupId
-            ? { ...g, items: [...(g.items ?? []), data] }
-            : g
-        )
+          label: newItemLabel.trim(),
+          link: newItemLink.trim(),
+          sortOrder: baseSortOrder,
+        },
+        {
+          onSuccess: () => {
+            setAddItemGroupId(null);
+            setNewItemType("custom");
+            setNewItemCategorySlugs([]);
+            setNewItemPageSlugs([]);
+            setNewItemLabel("");
+            setNewItemLink("");
+          },
+          onError: (e) => setError(e.message),
+        }
       );
-      setAddItemGroupId(null);
-      setNewItemType("custom");
-      setNewItemCategorySlug("");
-      setNewItemPageSlug("");
-      setNewItemLabel("");
-      setNewItemLink("");
-      router.refresh();
-    } finally {
-      setSaving(false);
     }
   }
 
-  async function updateItem(id: string, menuGroupId: string) {
+  function toggleCategorySlug(slug: string) {
+    setNewItemCategorySlugs((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
+    );
+  }
+
+  function togglePageSlug(slug: string) {
+    setNewItemPageSlugs((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
+    );
+  }
+
+  function updateItem(id: string, menuGroupId: string) {
     if (!editItemLabel.trim() || !editItemLink.trim()) {
       setError("Label and link required.");
       return;
     }
-    setSaving(true);
     setError("");
-    try {
-      const res = await fetch(`/api/admin/menu-items/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          label: editItemLabel.trim(),
-          link: editItemLink.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to update item.");
-        return;
-      }
-      setGroups((prev) =>
-        prev.map((g) =>
-          g.id === menuGroupId
-            ? {
-                ...g,
-                items: (g.items ?? []).map((i) => (i.id === id ? data : i)),
-              }
-            : g
-        )
-      );
-      setEditingItemId(null);
-      router.refresh();
-    } finally {
-      setSaving(false);
-    }
+    updateItemMutation.mutate(
+      { id, label: editItemLabel.trim(), link: editItemLink.trim() },
+      { onSuccess: () => setEditingItemId(null), onError: (e) => setError(e.message) }
+    );
   }
 
-  async function deleteItem(id: string, menuGroupId: string) {
-    if (!confirm("Remove this menu item?")) return;
-    await fetch(`/api/admin/menu-items/${id}`, { method: "DELETE" });
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === menuGroupId
-          ? { ...g, items: (g.items ?? []).filter((i) => i.id !== id) }
-          : g
-      )
-    );
-    setEditingItemId(null);
-    router.refresh();
-  }
 
   function toggleExpand(id: string) {
     setExpanded((prev) => {
@@ -393,7 +370,7 @@ export function MenusClient({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    deleteGroup(g.id);
+                    setDeleteTarget({ type: "group", id: g.id });
                   }}
                   className="rounded p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600"
                   aria-label="Delete group"
@@ -455,8 +432,8 @@ export function MenusClient({
                     onClick={() => {
                       setAddItemGroupId(g.id);
                       setNewItemType("custom");
-                      setNewItemCategorySlug("");
-                      setNewItemPageSlug("");
+                      setNewItemCategorySlugs([]);
+                      setNewItemPageSlugs([]);
                       setNewItemLabel("");
                       setNewItemLink("");
                       setError("");
@@ -508,40 +485,64 @@ export function MenusClient({
                     </div>
                     {newItemType === "category" ? (
                       <div className="space-y-2">
-                        <label className="block text-xs font-medium text-gray-500">Category</label>
-                        <select
-                          className={inputClass}
-                          value={newItemCategorySlug}
-                          onChange={(e) => setNewItemCategorySlug(e.target.value)}
-                        >
-                          <option value="">Select category…</option>
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.slug}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                        {categories.length === 0 && (
-                          <p className="text-xs text-gray-500">No categories yet. Add categories first or use Custom link.</p>
+                        <label className="block text-xs font-medium text-gray-500">
+                          Category (select one or more)
+                        </label>
+                        <div className="max-h-48 overflow-y-auto rounded-md border border-gray-300 bg-white p-2">
+                          {categories.length === 0 ? (
+                            <p className="text-xs text-gray-500">No categories yet. Add categories first or use Custom link.</p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {categories.map((c) => (
+                                <li key={c.id} className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`cat-${c.id}`}
+                                    checked={newItemCategorySlugs.includes(c.slug)}
+                                    onChange={() => toggleCategorySlug(c.slug)}
+                                    className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                                  />
+                                  <label htmlFor={`cat-${c.id}`} className="cursor-pointer text-sm text-gray-700">
+                                    {c.name}
+                                  </label>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        {newItemCategorySlugs.length > 0 && (
+                          <p className="text-xs text-gray-500">{newItemCategorySlugs.length} selected</p>
                         )}
                       </div>
                     ) : newItemType === "page" ? (
                       <div className="space-y-2">
-                        <label className="block text-xs font-medium text-gray-500">Page (Policy, Terms, etc.)</label>
-                        <select
-                          className={inputClass}
-                          value={newItemPageSlug}
-                          onChange={(e) => setNewItemPageSlug(e.target.value)}
-                        >
-                          <option value="">Select page…</option>
-                          {pages.map((p) => (
-                            <option key={p.id} value={p.slug}>
-                              {p.title}
-                            </option>
-                          ))}
-                        </select>
-                        {pages.length === 0 && (
-                          <p className="text-xs text-gray-500">No pages yet. Add pages in Pages first, or use Custom link.</p>
+                        <label className="block text-xs font-medium text-gray-500">
+                          Page (select one or more)
+                        </label>
+                        <div className="max-h-48 overflow-y-auto rounded-md border border-gray-300 bg-white p-2">
+                          {pages.length === 0 ? (
+                            <p className="text-xs text-gray-500">No pages yet. Add pages in Pages first, or use Custom link.</p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {pages.map((p) => (
+                                <li key={p.id} className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`page-${p.id}`}
+                                    checked={newItemPageSlugs.includes(p.slug)}
+                                    onChange={() => togglePageSlug(p.slug)}
+                                    className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                                  />
+                                  <label htmlFor={`page-${p.id}`} className="cursor-pointer text-sm text-gray-700">
+                                    {p.title}
+                                  </label>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        {newItemPageSlugs.length > 0 && (
+                          <p className="text-xs text-gray-500">{newItemPageSlugs.length} selected</p>
                         )}
                       </div>
                     ) : (
@@ -562,11 +563,11 @@ export function MenusClient({
                     )}
                     <div className="mt-2 flex gap-2">
                       <Button
-                        onClick={() => createItem(g.id)}
+                        onClick={() => createItems(g.id)}
                         disabled={
                           saving ||
-                          (newItemType === "category" && !newItemCategorySlug) ||
-                          (newItemType === "page" && !newItemPageSlug)
+                          (newItemType === "category" && newItemCategorySlugs.length === 0) ||
+                          (newItemType === "page" && newItemPageSlugs.length === 0)
                         }
                       >
                         {saving ? "Adding…" : "Add"}
@@ -635,7 +636,7 @@ export function MenusClient({
                           </button>
                           <button
                             type="button"
-                            onClick={() => deleteItem(item.id, g.id)}
+                            onClick={() => setDeleteTarget({ type: "item", id: item.id, menuGroupId: g.id })}
                             className="rounded p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600"
                             aria-label="Delete item"
                           >
@@ -667,6 +668,20 @@ export function MenusClient({
           </Button>
         </div>
       )}
+
+      <DeleteConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title={deleteTarget?.type === "group" ? "Delete menu group" : "Remove menu item"}
+        description={
+          deleteTarget?.type === "group"
+            ? "Delete this menu group and all its items?"
+            : "Remove this menu item?"
+        }
+        confirmLabel={deleteTarget?.type === "group" ? "Delete" : "Remove"}
+        loading={deleting}
+      />
     </div>
   );
 }

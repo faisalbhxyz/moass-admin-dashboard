@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 
 export function SettingsForm({ initial }: { initial: Record<string, string> }) {
@@ -11,14 +12,12 @@ export function SettingsForm({ initial }: { initial: Record<string, string> }) {
   const [lowStockThreshold, setLowStockThreshold] = useState(initial.low_stock_threshold ?? "5");
   const [paymentGateway, setPaymentGateway] = useState(initial.payment_gateway ?? "{}");
   const [saving, setSaving] = useState(false);
-  const [ok, setOk] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setOk(false);
     try {
-      await fetch("/api/admin/settings", {
+      const res = await fetch("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -28,8 +27,10 @@ export function SettingsForm({ initial }: { initial: Record<string, string> }) {
           payment_gateway: paymentGateway,
         }),
       });
-      router.refresh();
-      setOk(true);
+      if (res.ok) {
+        startTransition(() => router.refresh());
+        toast.success("Settings saved");
+      } else toast.error("Failed to save settings");
     } finally {
       setSaving(false);
     }
@@ -46,7 +47,6 @@ export function SettingsForm({ initial }: { initial: Record<string, string> }) {
           <div className="text-sm font-medium text-gray-900">General</div>
         </div>
         <div className="space-y-4 px-6 py-4">
-          {ok && <p className="text-xs text-green-600">Saved.</p>}
           <div>
             <label className={labelClass}>Site name</label>
             <input

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { TopBar } from "@/components/layout/TopBar";
 import { OrderEditForm } from "./OrderEditForm";
+import { OrderDeleteButton } from "./OrderDeleteButton";
 
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -33,6 +34,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           { label: "Orders", href: "/orders" },
           { label: `Order #${order.orderNumber}` },
         ]}
+        actions={<OrderDeleteButton orderId={order.id} orderNumber={order.orderNumber} />}
       />
       <div className="p-6">
         {showBanner && (
@@ -65,10 +67,17 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                     </tr>
                   </thead>
                   <tbody>
-                    {order.items.map((i) => (
+                    {order.items.map((i) => {
+                      const imgUrl = i.product.images?.split(",")[0]?.trim();
+                      const src = imgUrl?.startsWith("http") ? imgUrl : imgUrl ? (imgUrl.startsWith("/") ? imgUrl : `/${imgUrl}`) : null;
+                      return (
                       <tr key={i.id} className="border-b border-gray-100">
                         <td className="flex h-14 items-center gap-3 px-4 py-2">
-                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-gray-100" />
+                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-gray-100">
+                            {src ? (
+                              <img src={src} alt="" className="h-10 w-10 object-cover" />
+                            ) : null}
+                          </div>
                           <span className="text-gray-900">{i.product.name}</span>
                         </td>
                         <td className="px-4 py-2 text-right text-gray-700">{i.quantity}</td>
@@ -76,7 +85,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                           ৳{Number(i.price).toLocaleString()}
                         </td>
                       </tr>
-                    ))}
+                    ); })}
                   </tbody>
                 </table>
                 <div className="mt-4 space-y-1 border-t border-gray-200 pt-4 text-right text-sm">

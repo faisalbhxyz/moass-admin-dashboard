@@ -4,22 +4,26 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
-import { MoreHorizontal, Package, Search } from "lucide-react";
+import { Package, Search, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import toast from "react-hot-toast";
 
+/** Same labels as filter dropdown so table and filter stay in sync. */
 function statusDisplay(status: string): { label: string; variant: string } {
-  switch (status) {
-    case "delivered":
-    case "paid":
-      return { label: "Accepted", variant: "accepted" };
-    case "pending":
-    case "shipped":
-      return { label: "Pending", variant: "pending" };
-    case "cancelled":
-      return { label: "Rejected", variant: "rejected" };
-    default:
-      return { label: "Completed", variant: "completed" };
-  }
+  const labels: Record<string, string> = {
+    pending: "Pending",
+    paid: "Paid",
+    shipped: "Shipped",
+    delivered: "Delivered",
+    cancelled: "Cancelled",
+  };
+  const label = labels[status] ?? status;
+  const variant =
+    status === "delivered" || status === "paid" ? "accepted" :
+    status === "cancelled" ? "rejected" :
+    status === "pending" || status === "shipped" ? "pending" : "completed";
+  return { label, variant };
 }
 
 type Order = {
@@ -29,8 +33,15 @@ type Order = {
   total: { toString(): string };
   createdAt: Date;
   customer: { name: string | null; email: string } | null;
-  items: { product: { name: string } }[];
+  items: { product: { name: string; images: string | null } }[];
 };
+
+function orderItemImageSrc(images: string | null | undefined): string | null {
+  if (!images?.trim()) return null;
+  const first = images.split(",")[0]?.trim();
+  if (!first) return null;
+  return first.startsWith("http") ? first : first.startsWith("/") ? first : `/${first}`;
+}
 
 function buildQuery(params: { status?: string; page?: number; search?: string }) {
   const q = new URLSearchParams();
@@ -46,21 +57,51 @@ export function OrdersTable({
   currentStatus = "all",
   currentSearch = "",
   summary,
+  summaryDateLabel = "Last 365 days",
   pagination,
 }: {
   orders: Order[];
   currentStatus?: string;
   currentSearch?: string;
   summary?: { totalOrders: number; newOrders: number; completedOrders: number; cancelledOrders: number };
+  summaryDateLabel?: string;
   pagination?: { currentPage: number; totalPages: number; totalCount: number };
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [ordersList, setOrdersList] = useState(orders);
   const [searchInput, setSearchInput] = useState(currentSearch);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; orderNumber: string } | null>(null);
+
+  async function handleConfirmDeleteOrder() {
+    if (!deleteTarget) return;
+    setDeletingId(deleteTarget.id);
+    const idToRemove = deleteTarget.id;
+    const previousList = ordersList;
+    setOrdersList((prev) => prev.filter((o) => o.id !== idToRemove));
+    setDeleteTarget(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${idToRemove}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Order deleted");
+        router.refresh();
+      } else {
+        toast.error("Failed to delete order");
+        setOrdersList(previousList);
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   useEffect(() => {
     setSearchInput(currentSearch);
   }, [currentSearch]);
+
+  useEffect(() => {
+    setOrdersList(orders);
+  }, [orders]);
 
   const applySearch = useCallback(
     (search: string) => {
@@ -106,7 +147,7 @@ export function OrdersTable({
             <div key={label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className={`mb-2 h-0.5 w-8 rounded-full ${bar}`} />
               <p className="text-2xl font-bold tracking-tight text-gray-900">{value.toLocaleString()}</p>
-              <p className="mt-1 text-xs text-gray-500">{label} last 365 days</p>
+              <p className="mt-1 text-xs text-gray-500">{label} · {summaryDateLabel}</p>
             </div>
           ))}
         </div>
@@ -133,15 +174,6 @@ export function OrdersTable({
             <option key={f.value} value={f.value}>{f.label}</option>
           ))}
         </select>
-        <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600">
-          01 Jan, 2024 to 31 Dec, 2024
-        </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          More Filter
-        </button>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -158,15 +190,19 @@ export function OrdersTable({
               </tr>
             </thead>
             <tbody>
-              {orders.map((o) => {
+              {ordersList.map((o) => {
                 const productName = o.items[0]?.product?.name ?? "—";
                 const { label, variant } = statusDisplay(o.status);
                 return (
                   <tr key={o.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
-                          <Package className="h-4 w-4" />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100">
+                          {orderItemImageSrc(o.items[0]?.product?.images) ? (
+                            <img src={orderItemImageSrc(o.items[0]?.product?.images)!} alt="" className="h-9 w-9 object-cover" />
+                          ) : (
+                            <Package className="h-4 w-4 text-gray-500" />
+                          )}
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{productName}</p>
@@ -200,16 +236,23 @@ export function OrdersTable({
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           href={`/orders/${o.id}`}
-                          className="rounded-md px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                          aria-label="Edit"
                         >
-                          Details
+                          <Pencil className="h-4 w-4" />
                         </Link>
                         <button
                           type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-                          aria-label="More"
+                          onClick={(e) => { e.preventDefault(); setDeleteTarget({ id: o.id, orderNumber: o.orderNumber }); }}
+                          disabled={deletingId === o.id}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-70"
+                          aria-label="Delete"
                         >
-                          <MoreHorizontal className="h-4 w-4" />
+                          {deletingId === o.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -219,9 +262,16 @@ export function OrdersTable({
             </tbody>
           </table>
         </div>
-        {orders.length === 0 && (
+        {ordersList.length === 0 && (
           <div className="py-12 text-center text-sm text-gray-500">No orders yet.</div>
         )}
+        <DeleteConfirmModal
+          open={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleConfirmDeleteOrder}
+          description={deleteTarget ? `Delete order #${deleteTarget.orderNumber}? This cannot be undone.` : ""}
+          loading={deletingId !== null}
+        />
 
         {pagination && pagination.totalPages > 1 && (
           <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 px-6 py-4">

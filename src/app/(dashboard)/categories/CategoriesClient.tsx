@@ -1,19 +1,17 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { ImagePlus, X } from "lucide-react";
-
-type Cat = {
-  id: string;
-  name: string;
-  slug: string;
-  parentId: string | null;
-  parent: { name: string } | null;
-  image: string | null;
-  _count: { products: number };
-};
+import toast from "react-hot-toast";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import {
+  useCategoriesQuery,
+  useUpdateCategoryMutation,
+  useCreateCategoryMutation,
+  useDeleteCategoryMutation,
+  type Category,
+} from "./hooks/use-categories";
 
 const inputClass = "h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900";
 
@@ -34,40 +32,37 @@ function slugFromName(name: string): string {
     .replace(/[^a-z0-9-]/g, "");
 }
 
-export function CategoriesClient({ initialCategories }: { initialCategories: Cat[] }) {
-  const router = useRouter();
+export function CategoriesClient({ initialCategories }: { initialCategories: Category[] }) {
+  const { categories } = useCategoriesQuery(initialCategories);
+  const updateCat = useUpdateCategoryMutation();
+  const createCat = useCreateCategoryMutation();
+  const deleteCat = useDeleteCategoryMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [parentId, setParentId] = useState("");
   const [image, setImage] = useState("");
-  const [saving, setSaving] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState("");
   const [newSlug, setNewSlug] = useState("");
   const [newParentId, setNewParentId] = useState("");
   const [newImage, setNewImage] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const saving = updateCat.isPending || createCat.isPending;
 
-  async function saveEdit(id: string) {
-    setSaving(true);
-    try {
-      await fetch(`/api/admin/categories/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          slug: slug.trim() || slugFromName(name),
-          parentId: parentId || null,
-          image: image.trim() || null,
-        }),
-      });
-      router.refresh();
-      setEditing(null);
-    } finally {
-      setSaving(false);
-    }
+  function saveEdit(id: string) {
+    updateCat.mutate(
+      {
+        id,
+        name,
+        slug: slug.trim() || slugFromName(name),
+        parentId: parentId || null,
+        image: image.trim() || null,
+      },
+      { onSuccess: () => setEditing(null) }
+    );
   }
 
   /** ডক: আপলোড করলে API রেসপন্সে url আসে (/api/image/xyz); ক্যাটাগরি PATCH/POST এ ওই মান সেভ হয়। */
@@ -95,41 +90,32 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
     }
   }
 
-  async function create() {
+  function create() {
     if (!newName.trim()) return;
-    setSaving(true);
-    try {
-      const res = await fetch("/api/admin/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newName,
-          slug: newSlug.trim() || slugFromName(newName),
-          parentId: newParentId || null,
-          image: newImage.trim() || null,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.message || err.error || "Category create failed. Try again.");
-        return;
+    createCat.mutate(
+      {
+        name: newName,
+        slug: newSlug.trim() || slugFromName(newName),
+        parentId: newParentId || null,
+        image: newImage.trim() || null,
+      },
+      {
+        onSuccess: () => {
+          setShowNew(false);
+          setNewName("");
+          setNewSlug("");
+          setNewParentId("");
+          setNewImage("");
+          setUploadError("");
+        },
+        onError: (e) => toast.error(e.message || "Category create failed"),
       }
-      router.refresh();
-      setShowNew(false);
-      setNewName("");
-      setNewSlug("");
-      setNewParentId("");
-      setNewImage("");
-      setUploadError("");
-    } finally {
-      setSaving(false);
-    }
+    );
   }
 
-  async function remove(id: string) {
-    if (!confirm("Delete this category?")) return;
-    await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
-    router.refresh();
+  function handleConfirmDelete() {
+    if (!deleteTargetId) return;
+    deleteCat.mutate(deleteTargetId, { onSuccess: () => setDeleteTargetId(null) });
   }
 
   return (
@@ -160,7 +146,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
             <label className="mb-1 block text-xs font-medium text-gray-700">Parent</label>
             <select value={newParentId} onChange={(e) => setNewParentId(e.target.value)} className={inputClass}>
               <option value="">No parent</option>
-              {initialCategories.map((c) => (
+              {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
@@ -218,7 +204,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
               </tr>
             </thead>
             <tbody>
-              {initialCategories.map((c) => (
+              {categories.map((c) => (
                 <tr key={c.id} className="border-b border-gray-100 transition-colors duration-150 hover:bg-gray-50">
                   {editing === c.id ? (
                     <>
@@ -245,7 +231,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
                       <td className="px-4 py-2">
                         <select value={parentId} onChange={(e) => setParentId(e.target.value)} className={inputClass}>
                           <option value="">—</option>
-                          {initialCategories.filter((x) => x.id !== c.id).map((x) => (
+                          {categories.filter((x) => x.id !== c.id).map((x) => (
                             <option key={x.id} value={x.id}>{x.name}</option>
                           ))}
                         </select>
@@ -306,7 +292,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
                           Edit
                         </button>
                         {" · "}
-                        <button type="button" onClick={() => remove(c.id)} className="text-red-600 hover:underline">
+                        <button type="button" onClick={() => setDeleteTargetId(c.id)} className="text-red-600 hover:underline">
                           Delete
                         </button>
                       </td>
@@ -318,6 +304,13 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
           </table>
         </div>
       </div>
+      <DeleteConfirmModal
+        open={!!deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={handleConfirmDelete}
+        description="Delete this category?"
+        loading={deleteCat.isPending}
+      />
     </div>
   );
 }

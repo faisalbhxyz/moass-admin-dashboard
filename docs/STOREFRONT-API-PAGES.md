@@ -2,6 +2,8 @@
 
 অ্যাডমিন ড্যাশবোর্ডের **Pages** সেকশনে যে কন্টেন্ট পেজগুলো এডিট করা হয় (Privacy Policy, Terms & Conditions, Return Policy ইত্যাদি), স্টোরফ্রন্টে কিভাবে API দিয়ে নিয়ে একই ডিজাইনে দেখাবেন তার গাইড।
 
+**স্টোরফ্রন্ট টিমের জন্য আলাদা সংক্ষিপ্ত ডক:** [STOREFRONT-PAGES.md](STOREFRONT-PAGES.md) – শুধু স্টোরফ্রন্ট সেটআপ, রাউট ও কোড উদাহরণ (কপি-পেস্ট রেডি).
+
 **মেইন API ডক:** [STOREFRONT-API.md](STOREFRONT-API.md) – বেস URL, সেটআপ, অন্যান্য এন্ডপয়েন্ট।
 
 ---
@@ -54,6 +56,35 @@ NEXT_PUBLIC_API_BASE_URL=https://your-admin.vercel.app
 - রেসপন্সে `title` ও `content` (HTML স্ট্রিং) আসে। এই `content` স্টোরফ্রন্টে **যেমন আছে তেমন** রেন্ডার করলে অ্যাডমিনে যে ডিজাইন দেখাচ্ছে সেই একই ডিজাইন দেখা যাবে।
 
 **রেন্ডার করার নিয়ম:** API থেকে যে HTML কোড আসে, সেটা যেন পেজে **HTML হিসেবে** রেন্ডার হয় (যেমন React-এ `dangerouslySetInnerHTML`, Vue-তে `v-html`)। প্লেইন টেক্সট হিসেবে দেখালে ট্যাগগুলো দেখা যাবে, ডিজাইন আসবে না।
+
+---
+
+## আলাদা পেজ কিভাবে দেখাবেন (সংক্ষেপে)
+
+যেকোনো একটা পেজ (Terms, Privacy Policy, Return Policy ইত্যাদি) **আলাদা URL-এ** দেখাতে চাইলে নিচের মতো করবেন।
+
+### ১. একটা ডায়নামিক রাউট বানান
+
+একটা রাউট দিয়েই সব পেজ (যেকোনো slug) হ্যান্ডল হবে। প্রতিটি পেজের জন্য আলাদা ফাইল বানানোর দরকার নেই।
+
+| ফ্রেমওয়ার্ক | রাউট ফাইল | URL উদাহরণ |
+|--------------|------------|------------|
+| Next.js (App Router) | `app/page/[slug]/page.tsx` | `/page/terms`, `/page/privacy-policy` |
+| Next.js (Pages Router) | `pages/page/[slug].tsx` | একই |
+| অন্য (React/Vue) | `/page/:slug` যেভাবে রাউট করা থাকে | একই |
+
+### ২. সেই রাউটে API কল করে কন্টেন্ট নিয়ে রেন্ডার করুন
+
+- URL থেকে **slug** নিন (যেমন `terms`, `privacy-policy`)।
+- **`GET {API_BASE}/api/ecommerce/pages/{slug}`** কল করুন।
+- রেসপন্সে `title` ও `content` (HTML) পাবেন। `content` কে পেজে **HTML হিসেবে** রেন্ডার করুন (নিচে কোড উদাহরণ আছে)।
+
+### ৩. লিংক কোথায় দেবেন
+
+- **মেনু:** অ্যাডমিন Menus-এ **From page** দিয়ে পেজ অ্যাড করলে লিংক অটো `/page/{slug}` হয়ে যায়। স্টোরফ্রন্টে মেনু রেন্ডার করলেই ওই লিংকগুলো চলে আসে।
+- **যেকোনো জায়গা:** নিজে লিংক দিতে চাইলে `<Link href={/page/${slug}}>...</Link>` বা `<a href={/page/${slug}}>...</a>` দিন। slug মানে অ্যাডমিনে যে slug দিয়েছেন (যেমন `terms`, `return-policy`)।
+
+এভাবে এক রাউটেই সব আলাদা পেজ দেখানো যাবে; আলাদা আলাদা পেজ কম্পোনেন্ট বানানোর দরকার নেই।
 
 ---
 
@@ -127,11 +158,9 @@ const page = await res.json();
 
 ---
 
-## ৩. স্টোরফ্রন্টে পেজ রাউট ও HTML রেন্ডার
+## ৩. স্টোরফ্রন্টে পেজ রাউট ও HTML রেন্ডার (আলাদা পেজ দেখানোর কোড)
 
-### Next.js (App Router) উদাহরণ
-
-রাউট: `app/page/[slug]/page.tsx` (অথবা `app/terms/page.tsx` ইত্যাদি)।
+আলাদা পেজ দেখাতে নিচের মতো একটা পেজ বানালেই হয়। Next.js App Router এর উদাহরণ:
 
 ```tsx
 // app/page/[slug]/page.tsx
@@ -157,6 +186,8 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
   );
 }
 ```
+
+**ফাইল পাথ:** `app/page/[slug]/page.tsx` রাখলে URL হবে `/page/terms`, `/page/privacy-policy` ইত্যাদি। একই ফাইলে যেকোনো slug দিয়ে আলাদা পেজ দেখাবে।
 
 ### ফুটারে লিংক (পেজ লিস্ট থেকে)
 

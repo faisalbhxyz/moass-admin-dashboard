@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
  */
 export async function GET() {
   const pages = await prisma.contentPage.findMany({
+    where: { active: true },
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     select: { id: true, slug: true, title: true },
   });

@@ -11,8 +11,8 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const page = await prisma.contentPage.findUnique({
-    where: { slug },
+  const page = await prisma.contentPage.findFirst({
+    where: { slug, active: true },
     select: { id: true, slug: true, title: true, content: true, updatedAt: true },
   });
   if (!page) return NextResponse.json({ error: "Page not found" }, { status: 404 });

@@ -244,6 +244,7 @@ model ContentPage {
   slug      String   @unique  // e.g. "policy", "terms", "return-policy"
   title     String
   content   String   @db.LongText  // HTML content; storefront renders as-is
+  active    Boolean  @default(true)  // inactive = hidden from storefront
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

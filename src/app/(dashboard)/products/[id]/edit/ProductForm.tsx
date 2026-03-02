@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
+import { useState, useRef, useTransition, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Bold, Italic, Underline, Strikethrough, Link2, List } from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough, Link2, List, Type, Code } from "lucide-react";
 import { Save, Calendar, Plus, CloudUpload, ImagePlus, Trash2 } from "lucide-react";
 
 type Category = { id: string; name: string; slug?: string; children?: { id: string; name: string }[] };
@@ -66,7 +66,34 @@ export function ProductForm({
   const [minOrder, setMinOrder] = useState(100);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [descriptionTab, setDescriptionTab] = useState<"rich" | "html">("rich");
   const imageFileInputRef = useRef<HTMLInputElement>(null);
+  const descEditorRef = useRef<HTMLDivElement>(null);
+
+  const prevDescTabRef = useRef<"rich" | "html">(descriptionTab);
+  useEffect(() => {
+    if (descriptionTab === "rich" && prevDescTabRef.current !== "rich" && descEditorRef.current) {
+      descEditorRef.current.innerHTML = description || "<p><br></p>";
+    }
+    prevDescTabRef.current = descriptionTab;
+  }, [descriptionTab, description]);
+
+  useEffect(() => {
+    if (descEditorRef.current && descriptionTab === "rich" && !descEditorRef.current.innerHTML.trim()) {
+      descEditorRef.current.innerHTML = description || "<p><br></p>";
+    }
+  }, []);
+
+  const handleDescRichInput = useCallback(() => {
+    if (!descEditorRef.current) return;
+    setDescription(descEditorRef.current.innerHTML || "");
+  }, []);
+
+  function execDescCommand(cmd: string, value?: string) {
+    document.execCommand(cmd, false, value);
+    descEditorRef.current?.focus();
+    handleDescRichInput();
+  }
 
   // Variation images: array of { key, label, images } so we can add/remove and show per-variation uploads
   const [variations, setVariations] = useState<VariationItem[]>(() => {
@@ -254,7 +281,29 @@ export function ProductForm({
             </div>
             <div>
               <label className={labelClass}>Description</label>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className={`min-h-[80px] ${inputClass} py-2`} />
+              <div className="mb-2 flex gap-2">
+                <button type="button" onClick={() => setDescriptionTab("rich")} className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium ${descriptionTab === "rich" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  <Type className="h-3.5 w-3.5" /> Rich text
+                </button>
+                <button type="button" onClick={() => setDescriptionTab("html")} className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium ${descriptionTab === "html" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  <Code className="h-3.5 w-3.5" /> HTML
+                </button>
+              </div>
+              {descriptionTab === "rich" ? (
+                <div className="rounded-lg border border-gray-200 bg-white">
+                  <div className="flex flex-wrap gap-1 border-b border-gray-100 bg-gray-50 px-2 py-1.5">
+                    <button type="button" onClick={() => execDescCommand("bold")} className="rounded px-2 py-1 text-sm font-bold hover:bg-gray-200" title="Bold">B</button>
+                    <button type="button" onClick={() => execDescCommand("italic")} className="rounded px-2 py-1 text-sm italic hover:bg-gray-200" title="Italic">I</button>
+                    <button type="button" onClick={() => execDescCommand("underline")} className="rounded px-2 py-1 text-sm underline hover:bg-gray-200" title="Underline">U</button>
+                    <button type="button" onClick={() => execDescCommand("insertUnorderedList")} className="rounded px-2 py-1 hover:bg-gray-200" title="List">• List</button>
+                    <button type="button" onClick={() => execDescCommand("insertOrderedList")} className="rounded px-2 py-1 hover:bg-gray-200" title="Numbered list">1.</button>
+                    <button type="button" onClick={() => execDescCommand("createLink", prompt("Link URL:") || undefined)} className="rounded px-2 py-1 text-sm text-blue-600 hover:bg-gray-200" title="Link">Link</button>
+                  </div>
+                  <div ref={descEditorRef} contentEditable suppressContentEditableWarning onInput={handleDescRichInput} className="min-h-[100px] max-h-[280px] overflow-y-auto px-3 py-2 text-sm text-gray-900 focus:outline-none prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0" />
+                </div>
+              ) : (
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} className={`min-h-[100px] ${inputClass} py-2 font-mono text-xs`} placeholder="<p>HTML...</p>" spellCheck={false} />
+              )}
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
             <Button type="submit" disabled={saving || isPending}>{saving ? "Saving…" : isPending ? "Redirecting…" : "Save"}</Button>
@@ -435,14 +484,34 @@ export function ProductForm({
                 />
               </div>
               <div>
-                <label className={labelClass}>Product Description</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  placeholder="Describe your product..."
-                  className={`min-h-[100px] ${inputClass} py-2`}
-                />
+                <div className="mb-2 flex items-center gap-2">
+                  <label className={labelClass}>Product Description</label>
+                  <div className="ml-auto flex rounded-md border border-gray-200 bg-gray-50 p-0.5">
+                    <button type="button" onClick={() => setDescriptionTab("rich")} className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium ${descriptionTab === "rich" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
+                      <Type className="h-3.5 w-3.5" /> Rich text
+                    </button>
+                    <button type="button" onClick={() => setDescriptionTab("html")} className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium ${descriptionTab === "html" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
+                      <Code className="h-3.5 w-3.5" /> HTML
+                    </button>
+                  </div>
+                </div>
+                {descriptionTab === "rich" ? (
+                  <div className="rounded-lg border border-gray-200 bg-white">
+                    <div className="flex flex-wrap gap-1 border-b border-gray-100 bg-gray-50 px-2 py-1.5">
+                      <button type="button" onClick={() => execDescCommand("bold")} className="rounded px-2 py-1 text-sm font-bold hover:bg-gray-200" title="Bold">B</button>
+                      <button type="button" onClick={() => execDescCommand("italic")} className="rounded px-2 py-1 text-sm italic hover:bg-gray-200" title="Italic">I</button>
+                      <button type="button" onClick={() => execDescCommand("underline")} className="rounded px-2 py-1 text-sm underline hover:bg-gray-200" title="Underline">U</button>
+                      <span className="mx-1 w-px bg-gray-300" />
+                      <button type="button" onClick={() => execDescCommand("insertUnorderedList")} className="rounded px-2 py-1 hover:bg-gray-200" title="Bullet list">• List</button>
+                      <button type="button" onClick={() => execDescCommand("insertOrderedList")} className="rounded px-2 py-1 hover:bg-gray-200" title="Numbered list">1. List</button>
+                      <span className="mx-1 w-px bg-gray-300" />
+                      <button type="button" onClick={() => execDescCommand("createLink", prompt("Link URL:") || undefined)} className="rounded px-2 py-1 text-sm text-blue-600 hover:bg-gray-200" title="Link">Link</button>
+                    </div>
+                    <div ref={descEditorRef} contentEditable suppressContentEditableWarning onInput={handleDescRichInput} className="min-h-[140px] max-h-[320px] overflow-y-auto px-3 py-3 text-sm text-gray-900 focus:outline-none prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0" />
+                  </div>
+                ) : (
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={8} className={`min-h-[140px] w-full rounded-lg border border-gray-200 bg-gray-50 py-2 px-3 font-mono text-sm text-gray-900 focus:border-[var(--teal)] focus:outline-none focus:ring-1 focus:ring-[var(--teal)]`} placeholder="<p>Your HTML...</p>" spellCheck={false} />
+                )}
               </div>
               <div>
                 <label className={labelClass}>Product Details</label>

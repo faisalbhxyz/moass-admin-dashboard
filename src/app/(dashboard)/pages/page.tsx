@@ -10,7 +10,7 @@ export default async function PagesPage() {
   if (!user) redirect("/auth/v2/login");
   const pages = await prisma.contentPage.findMany({
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-    select: { id: true, slug: true, title: true, sortOrder: true, updatedAt: true },
+    select: { id: true, slug: true, title: true, sortOrder: true, active: true, updatedAt: true },
   });
   return (
     <div className="min-h-full">

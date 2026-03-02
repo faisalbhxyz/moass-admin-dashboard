@@ -23,6 +23,7 @@ import {
   Search,
   List,
   FileText,
+  Receipt,
 } from "lucide-react";
 
 function LogoutButton() {
@@ -45,6 +46,7 @@ function LogoutButton() {
 const mainNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/transactions", label: "Transactions", icon: Receipt },
   { href: "/products", label: "Products", icon: Package },
   { href: "/categories", label: "Categories", icon: FolderTree },
   { href: "/banners", label: "Banners", icon: Image },

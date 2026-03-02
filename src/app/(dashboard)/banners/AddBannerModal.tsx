@@ -1,30 +1,63 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
 import { Modal } from "@/components/Modal";
 import { ImagePlus, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useCreateBannerMutation, useUpdateBannerMutation } from "./hooks/use-banners";
+
+type BannerForEdit = { id: string; title: string | null; image: string; link: string | null };
 
 type AddBannerModalProps = {
   open: boolean;
   onClose: () => void;
+  editBanner?: BannerForEdit | null;
 };
 
 const inputClass =
   "h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900";
 const labelClass = "mb-1 block text-xs font-medium text-gray-700";
 
-export function AddBannerModal({ open, onClose }: AddBannerModalProps) {
-  const router = useRouter();
+function resetForm(
+  setTitle: (v: string) => void,
+  setImage: (v: string) => void,
+  setLink: (v: string) => void,
+  clearImage: () => void
+) {
+  setTitle("");
+  setImage("");
+  setLink("");
+  clearImage();
+}
+
+export function AddBannerModal({ open, onClose, editBanner }: AddBannerModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [title, setTitle] = useState("");
-  const [image, setImage] = useState("");
+  const createBanner = useCreateBannerMutation();
+  const updateBanner = useUpdateBannerMutation();
+  const [title, setTitle] = useState(editBanner?.title ?? "");
+  const [image, setImage] = useState(editBanner?.image ?? "");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [link, setLink] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [link, setLink] = useState(editBanner?.link ?? "");
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const saving = createBanner.isPending || updateBanner.isPending || uploading;
+
+  useEffect(() => {
+    if (open && editBanner) {
+      setTitle(editBanner.title ?? "");
+      setImage(editBanner.image ?? "");
+      setLink(editBanner.link ?? "");
+      setPreview(null);
+      setImageFile(null);
+    } else if (open && !editBanner) {
+      setTitle("");
+      setImage("");
+      setLink("");
+      setPreview(null);
+      setImageFile(null);
+    }
+  }, [open, editBanner]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -55,50 +88,46 @@ export function AddBannerModal({ open, onClose }: AddBannerModalProps) {
       setError("Add an image by uploading a file or pasting a URL.");
       return;
     }
-    setSaving(true);
-    try {
-      let imageUrlToUse = imageUrl;
-      if (imageFile) {
-        // Same as product image: upload first, then create with URL (avoids LONGBLOB/body size issues)
+    let imageUrlToUse = imageUrl;
+    if (imageFile) {
+      setUploading(true);
+      try {
         const uploadForm = new FormData();
         uploadForm.set("file", imageFile);
         const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadForm });
         const uploadData = await uploadRes.json().catch(() => ({}));
         if (!uploadRes.ok) {
           setError(uploadData.error || "Image upload failed. Try again.");
-          setSaving(false);
           return;
         }
         imageUrlToUse = uploadData.url;
         if (!imageUrlToUse) {
           setError("Upload did not return an image URL.");
-          setSaving(false);
           return;
         }
+      } finally {
+        setUploading(false);
       }
-      const res = await fetch("/api/admin/banners", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title || undefined,
-          image: imageUrlToUse,
-          link: link || undefined,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error || "Failed to create banner.");
-        setSaving(false);
-        return;
-      }
-      router.refresh();
+    }
+    const payload = {
+      title: title || undefined,
+      image: imageUrlToUse,
+      link: link || undefined,
+    };
+    const done = () => {
+      resetForm(setTitle, setImage, setLink, clearImage);
       onClose();
-      setTitle("");
-      setImage("");
-      setLink("");
-      clearImage();
-    } finally {
-      setSaving(false);
+    };
+    if (editBanner) {
+      updateBanner.mutate(
+        { id: editBanner.id, ...payload },
+        { onSuccess: done, onError: (err) => setError(err.message) }
+      );
+    } else {
+      createBanner.mutate(payload, {
+        onSuccess: done,
+        onError: (err) => setError(err.message),
+      });
     }
   }
 
@@ -112,7 +141,7 @@ export function AddBannerModal({ open, onClose }: AddBannerModalProps) {
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Add banner">
+    <Modal open={open} onClose={handleClose} title={editBanner ? "Edit banner" : "Add banner"}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
@@ -190,7 +219,7 @@ export function AddBannerModal({ open, onClose }: AddBannerModalProps) {
 
         <div className="flex flex-wrap gap-2 pt-2">
           <Button type="submit" disabled={saving}>
-            {saving ? "Saving…" : "Create banner"}
+            {saving ? "Saving…" : editBanner ? "Update banner" : "Create banner"}
           </Button>
           <Button type="button" variant="secondary" onClick={handleClose}>
             Cancel

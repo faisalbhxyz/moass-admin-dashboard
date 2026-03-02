@@ -1,26 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 
 type Product = { id: string; name: string; stock: number; sku: string | null; categories: { name: string }[] };
 
 export function InventoryClient({ lowStock }: { lowStock: Product[] }) {
   const router = useRouter();
+  const [products, setProducts] = useState(lowStock);
   const [stock, setStock] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
   async function updateStock(id: string, newStock: number) {
     setSaving(id);
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, stock: newStock } : p)));
     try {
-      await fetch(`/api/admin/inventory/${id}`, {
+      const res = await fetch(`/api/admin/inventory/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stock: newStock }),
       });
-      router.refresh();
+      if (res.ok) {
+        router.refresh();
+        toast.success("Stock updated");
+      } else {
+        setProducts(lowStock);
+        toast.error("Failed to update stock");
+      }
     } finally {
       setSaving(null);
     }
@@ -39,7 +48,7 @@ export function InventoryClient({ lowStock }: { lowStock: Product[] }) {
             </tr>
           </thead>
           <tbody>
-            {lowStock.map((p) => (
+            {products.map((p) => (
               <tr
                 key={p.id}
                 className={`border-b border-gray-100 transition-colors duration-150 hover:bg-gray-50 ${
@@ -76,7 +85,7 @@ export function InventoryClient({ lowStock }: { lowStock: Product[] }) {
           </tbody>
         </table>
       </div>
-      {lowStock.length === 0 && (
+      {products.length === 0 && (
         <p className="py-12 text-center text-sm text-gray-500">No low-stock products.</p>
       )}
     </div>
