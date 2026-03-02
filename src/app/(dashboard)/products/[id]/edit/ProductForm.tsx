@@ -136,11 +136,35 @@ export function ProductForm({
     setImages(list.join(", "));
   }
 
+  /** প্রোডাক্ট ইমেজ API রিকোয়ারমেন্ট: ১:১ রেশিও। */
+  function checkImage1to1(file: File): Promise<boolean> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        resolve(w > 0 && h > 0 && Math.abs(w - h) < 2);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(false);
+      };
+      img.src = url;
+    });
+  }
+
   async function handleMainImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
     e.target.value = "";
     setError("");
+    const is1to1 = await checkImage1to1(file);
+    if (!is1to1) {
+      setError("প্রোডাক্ট ইমেজ ১:১ রেশিও হতে হবে (বর্গাকার)।");
+      return;
+    }
     try {
       const formData = new FormData();
       formData.set("file", file);
@@ -174,6 +198,11 @@ export function ProductForm({
   async function handleVariationImageUpload(variationKey: string, file: File) {
     if (!file.type.startsWith("image/")) return;
     setError("");
+    const is1to1 = await checkImage1to1(file);
+    if (!is1to1) {
+      setError("প্রোডাক্ট ইমেজ ১:১ রেশিও হতে হবে (বর্গাকার)।");
+      return;
+    }
     try {
       const formData = new FormData();
       formData.set("file", file);
@@ -294,7 +323,7 @@ export function ProductForm({
                 ))}
               </div>
               <div>
-                <label className={labelClass}>Images (URLs, comma separated)</label>
+                <label className={labelClass}>Images (URLs, comma separated) — ১:১ রেশিও প্রয়োজন</label>
                 <input type="text" value={images} onChange={(e) => setImages(e.target.value)} className={inputClass} />
               </div>
             </div>
@@ -551,7 +580,7 @@ export function ProductForm({
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-xs text-gray-500">Or paste image URLs comma-separated below</p>
+            <p className="mt-2 text-xs text-gray-500">প্রোডাক্ট ইমেজ ১:১ রেশিও হতে হবে। Or paste image URLs comma-separated below.</p>
             <input type="text" value={images} onChange={(e) => setImages(e.target.value)} placeholder="https://..." className={`mt-1 ${inputClass}`} />
           </div>
 

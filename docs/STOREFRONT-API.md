@@ -127,7 +127,8 @@ const data = await apiGet("/api/ecommerce/products", { page: "1", limit: "12" })
       "description": "...",
       "price": "999.00",
       "compareAt": "1299.00",
-      "images": "https://.../1.jpg,https://.../2.jpg",
+      "images": "/api/image/clxx111,/api/image/clxx222",
+      "variationImages": "{\"M-Red\":\"/api/image/a1,/api/image/a2\",\"L-Blue\":\"/api/image/b1\"}",
       "stock": 10,
       "sku": "SKU-001",
       "categoryId": "clxx...",
@@ -145,7 +146,8 @@ const data = await apiGet("/api/ecommerce/products", { page: "1", limit: "12" })
 ```
 
 - `price`, `compareAt` ডেসিমাল হিসেবে string আসে (যেমন `"999.00"`)।
-- `images` একটা string (কমা-সেপারেটেড URL)। ফ্রন্টএন্ডে `images.split(",")` করে অ্যারে বানাতে পারেন।
+- **`images`**: type `string` (খালি হতে পারবে `""` বা `null`)। মেইন প্রোডাক্ট ইমেজ — একাধিক URL **কমা দিয়ে** (comma-separated)। উদাহরণ: `"/api/image/clxx111,/api/image/clxx222"`। মানগুলো **রিলেটিভ পাথ**; স্টোরফ্রন্ট বেস URL দিয়ে ফুল URL বানাবে। ইমেজ সার্ভ: **`GET /api/image/[id]`** (পাবলিক)। বিস্তারিত: [প্রোডাক্ট ইমেজ API](STOREFRONT-API-PRODUCT-IMAGES.md)।
+- **`variationImages`**: type `string` (JSON) বা `null`। ভ্যারিয়েশন অনুযায়ী ইমেজ। ফরম্যাট: `"{\"Size-Color\":\"url1,url2\",...}"` — key যেমন `"M-Red"`, `"L-Blue"` (সাইজ-কালার); value কমা-সেপারেটেড ইমেজ পাথ। **কালার/সাইজ সিলেক্ট করলে** সেই key-এর ইমেজ দেখাবেন; ভ্যারিয়েশন না থাকলে বা key মিল না থাকলে `images` ব্যবহার করুন। বিস্তারিত: [প্রোডাক্ট ইমেজ API](STOREFRONT-API-PRODUCT-IMAGES.md)।
 
 ---
 
@@ -171,7 +173,7 @@ const product = await apiGet(`/api/ecommerce/products/${idOrSlug}`);
 
 #### Success Response (200)
 
-একটা প্রোডাক্ট অবজেক্ট (লিস্টের আইটেমের মতোই, সাথে `category` সহ)। প্রোডাক্ট না থাকলে বা unpublished থাকলে **404**।
+একটা প্রোডাক্ট অবজেক্ট (লিস্টের আইটেমের মতোই, সাথে `category` সহ)। এখানেও **`images`** (মেইন ইমেজ) ও **`variationImages`** (JSON স্ট্রিং, ভ্যারিয়েশন অনুযায়ী ইমেজ) একই ফরম্যাট। প্রোডাক্ট না থাকলে বা unpublished থাকলে **404**।
 
 #### Error Response (404)
 
@@ -214,7 +216,7 @@ const categories = await apiGet("/api/ecommerce/categories");
     "parentId": null,
     "parent": null,
     "children": [],
-    "image": null,
+    "image": "/api/image/clxximg123",
     "sortOrder": 0,
     "_count": { "products": 5 },
     "createdAt": "...",
@@ -222,6 +224,8 @@ const categories = await apiGet("/api/ecommerce/categories");
   }
 ]
 ```
+
+- **`image`**: type `string \| null`। ক্যাটাগরি ইমেজ — অ্যাডমিনে ক্যাটাগরিতে ইমেজ অ্যাড করলে এখানে আসে। রিলেটিভ পাথ (যেমন `/api/image/xyz`) বা এক্সটার্নাল URL। স্টোরফ্রন্টে ফুল URL বানাতে: রিলেটিভ হলে বেস URL (`NEXT_PUBLIC_API_BASE_URL`) সামনে যোগ করুন। বিস্তারিত: [ক্যাটাগরি ও ব্যানার ইমেজ API](STOREFRONT-API-CATEGORY-BANNER-IMAGES.md)।
 
 ---
 
@@ -241,7 +245,7 @@ const categories = await apiGet("/api/ecommerce/categories");
   {
     "id": "clxx...",
     "title": "Summer Sale",
-    "image": "https://.../banner.jpg",
+    "image": "/api/banner-image/clxx...",
     "link": "/category/summer",
     "sortOrder": 0,
     "active": true,
@@ -250,6 +254,8 @@ const categories = await apiGet("/api/ecommerce/categories");
   }
 ]
 ```
+
+- **`image`**: type `string \| null`। ব্যানার ইমেজ। অ্যাডমিনে আপলোড করলে `"/api/banner-image/[bannerId]"` (রিলেটিভ); বাইরের URL দিলে সেই URL। স্টোরফ্রন্টে রিলেটিভ হলে বেস URL দিয়ে ফুল URL বানান। ইমেজ সার্ভ: **`GET /api/banner-image/[id]`** (পাবলিক)। বিস্তারিত: [ক্যাটাগরি ও ব্যানার ইমেজ API](STOREFRONT-API-CATEGORY-BANNER-IMAGES.md)।
 
 ---
 
@@ -498,7 +504,8 @@ console.log("Order placed:", order.orderNumber);
 | `description` | string \| null | |
 | `price` | string | ডেসিমাল string (যেমন `"999.00"`) |
 | `compareAt` | string \| null | আগের দাম (স্ট্রাইকথ্রু দেখানোর জন্য) |
-| `images` | string | কমা-সেপারেটেড image URL |
+| `images` | string \| null | মেইন ইমেজ — কমা-সেপারেটেড পাথ (যেমন `"/api/image/clxx111,/api/image/clxx222"`)। খালি হতে পারবে `""` বা `null`। ফুল URL = বেস URL + পাথ। ইমেজ সার্ভ: `GET /api/image/[id]` (পাবলিক)। |
+| `variationImages` | string \| null | ভ্যারিয়েশন অনুযায়ী ইমেজ — JSON স্ট্রিং: `{"Size-Color":"url1,url2",...}`। Key উদাহরণ: `"M-Red"`, `"L-Blue"`। কালার/সাইজ সিলেক্ট করলে ওই key-এর ইমেজ দেখান। বিস্তারিত: [প্রোডাক্ট ইমেজ API](STOREFRONT-API-PRODUCT-IMAGES.md)। |
 | `stock` | number | |
 | `sku` | string \| null | |
 | `categoryId` | string \| null | |
@@ -509,14 +516,24 @@ console.log("Order placed:", order.orderNumber);
 
 ### Category
 
-| Field | Type |
-|-------|------|
-| `id`, `name`, `slug` | string |
-| `description`, `image` | string \| null |
-| `parentId` | string \| null |
-| `parent`, `children` | Category \| null, Category[] |
-| `_count.products` | number (ক্যাটাগরি API তে) |
-| `sortOrder` | number |
+| Field | Type | Notes |
+|-------|------|--------|
+| `id`, `name`, `slug` | string | |
+| `description`, `image` | string \| null | `image`: ক্যাটাগরি ইমেজ (রিলেটিভ যেমন `/api/image/xyz` বা এক্সটার্নাল URL)। ফুল URL = বেস URL + পাথ। [ক্যাটাগরি ও ব্যানার ইমেজ](STOREFRONT-API-CATEGORY-BANNER-IMAGES.md) |
+| `parentId` | string \| null | |
+| `parent`, `children` | Category \| null, Category[] | |
+| `_count.products` | number | ক্যাটাগরি API তে |
+| `sortOrder` | number | |
+
+### Banner (ব্যানার লিস্ট)
+
+| Field | Type | Notes |
+|-------|------|--------|
+| `id`, `title`, `link` | string \| null | |
+| `image` | string \| null | ব্যানার ইমেজ। আপলোড করলে `"/api/banner-image/[id]"`; বাইরের URL দিলে সেই URL। ফুল URL = বেস URL + পাথ। [ক্যাটাগরি ও ব্যানার ইমেজ](STOREFRONT-API-CATEGORY-BANNER-IMAGES.md) |
+| `sortOrder` | number | |
+| `active` | boolean | |
+| `createdAt`, `updatedAt` | string (ISO) | |
 
 ### Order (অর্ডার প্লেস রেসপন্স)
 

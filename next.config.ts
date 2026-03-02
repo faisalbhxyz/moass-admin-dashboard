@@ -14,6 +14,20 @@ const nextConfig: NextConfig = {
           { key: "Access-Control-Allow-Headers", value: "Content-Type" },
         ],
       },
+      {
+        source: "/api/image/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: storefrontOrigin },
+          { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
+        ],
+      },
+      {
+        source: "/api/banner-image/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: storefrontOrigin },
+          { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
+        ],
+      },
     ];
   },
 };

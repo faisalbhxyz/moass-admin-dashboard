@@ -10,7 +10,7 @@ export default async function BannersPage() {
   if (!user) redirect("/auth/v2/login");
   const rows = await prisma.banner.findMany({
     orderBy: { sortOrder: "asc" },
-  });
+  }).catch(() => []);
   const banners = rows.map(bannerToJson);
   return (
     <div className="min-h-full">

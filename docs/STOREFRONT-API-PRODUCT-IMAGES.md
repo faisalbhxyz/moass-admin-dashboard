@@ -1,6 +1,58 @@
 # প্রোডাক্ট ইমেজ API (স্টোরফ্রন্ট)
 
-স্টোরফ্রন্টে প্রোডাক্ট ইমেজ দেখানোর জন্য শুধু এই অংশটা ব্যবহার করুন। বাকি API ইতিমধ্যে কানেক্ট থাকলে কেবল ইমেজ ফিল্ড ও ইমেজ URL বানানোর নিয়ম মানলেই হবে।
+স্টোরফ্রন্টে প্রোডাক্ট ইমেজ দেখানোর জন্য শুধু এই অংশটা ব্যবহার করুন। বাকি API ইতিমধ্যে কানেক্ট থাকলে কেবল ইমেজ ফিল্ড ও নিয়ম মানলেই হবে। **স্টোরফ্রন্ট এখন শুধু API থেকেই ইমেজ নেয়;** লোকাল/ফ্যালব্যাক ইমেজ আর যুক্ত করা হয় না। এখানে **মাল্টিপল ইমেজ (গ্যালারি)** এবং **ভ্যারিয়েশন অনুযায়ী ইমেজ (যেমন কালার সিলেক্ট করলে ওই কালারের ইমেজ)** দুটোই কাভার করা হয়েছে।
+
+---
+
+## ০. ইমেজ পাচ্ছি কি না — চেক করার উপায়
+
+ব্রাউজার বা Postman দিয়ে সরাসরি কল করুন:
+
+- **প্রোডাক্ট লিস্ট:** `GET https://<অ্যাডমিন-ডোমেইন>/api/ecommerce/products?page=1&limit=12`
+- **সিঙ্গেল প্রোডাক্ট:** `GET https://<অ্যাডমিন-ডোমেইন>/api/ecommerce/products/<id>`
+
+রেসপন্সের প্রতিটি প্রোডাক্টে **`images`** (এবং ভ্যারিয়েশন থাকলে **`variationImages`**) ফিল্ড দেখুন:
+
+| দেখা যাচ্ছে | অর্থ |
+|------------|------|
+| `"images": "/api/image/xyz"` বা `"images": "url1,url2"` (কমা দিয়ে একাধিক) | মেইন ইমেজ পাচ্ছি — স্টোরফ্রন্টে ইমেজ দেখাবে |
+| `"variationImages": "{\"M-Red\":\"...\",\"L-Blue\":\"...\"}"` | ভ্যারিয়েশন অনুযায়ী ইমেজ পাচ্ছি — কালার/সাইজ সিলেক্ট করলে ওই ইমেজ দেখাবে |
+| `"images": ""` বা `"images": null` বা ফিল্ডই নেই | মেইন ইমেজ নেই — ভ্যারিয়েশন ইমেজ থাকলে সেটা ব্যবহার করুন, নাহলে “No image” |
+
+**সংক্ষেপে:** API রেসপন্সে `images` বা `variationImages` ভরাট থাকলে ইমেজ পাচ্ছি; দুটোই খালি/নেই মানে “No image”।
+
+---
+
+## ০.১ কেন ইমেজ দেখাচ্ছে না (স্টোরফ্রন্টের দিক)
+
+ইমেজ **শুধু API থেকে** আসে। তাই স্টোরফ্রন্টে ইমেজ তখনই দেখাবে যখন অ্যাডমিন API প্রতিটি প্রোডাক্টের জন্য `images` ফিল্ডে মান পাঠাবে।
+
+**ইমেজ দেখাবে না** যখন:
+
+- প্রোডাক্ট লিস্ট আসে কিন্তু **`images` খালি বা নেই**, অথবা
+- **`images` থাকে কিন্তু ফরম্যাট ভুল** (যেমন অবজেক্ট, অথবা ভিন্ন ফিল্ড)।
+
+### কীভাবে চেক করবেন
+
+১. **ব্রাউজার থেকে API কল করুন** (স্টোরফ্রন্ট যে বেস URL ব্যবহার করে):
+
+   ```
+   https://moass-admin-dashboard.vercel.app/api/ecommerce/products?page=1&limit=12
+   ```
+
+২. **রেসপন্সে প্রতিটি প্রোডাক্ট অবজেক্ট দেখুন:**
+   - ইমেজ থাকলে: `"images": "/api/image/xyz"` বা `"images": "url1,url2"`
+   - ইমেজ না থাকলে: `"images": ""` বা `"images": null` বা `images` ফিল্ডই নেই।
+
+৩. **ডেভ টুলস কনসোল:** ডেভ মোডে রান করলে কোনো প্রোডাক্টের ইমেজ না থাকলে স্টোরফ্রন্টে এমন ওয়ার্নিং লগ দেওয়া যায়:
+   ```
+   [Storefront] Product "..." (id: ...) has no images — API returned empty/missing "images" field.
+   ```
+
+### অ্যাডমিনে কী করতে হবে
+
+- **প্রোডাক্ট লিস্ট API** (`GET /api/ecommerce/products`) এবং **সিঙ্গেল প্রোডাক্ট API** (`GET /api/ecommerce/products/[id]`) — এই দুটো রেসপন্সে প্রতিটি প্রোডাক্টে `images` ফিল্ড থাকতে হবে এবং মান হতে হবে **কমা দিয়ে আলাদা করা URL স্ট্রিং**, যেমন: `"images": "/api/image/clxx111,/api/image/clxx222"`।
+- অ্যাডমিন ড্যাশবোর্ডে প্রোডাক্ট সেভ/আপডেট করার সময় ওই প্রোডাক্টের ইমেজগুলো ডাটাবেইসে সেভ করে API রেসপন্সে এই `images` স্ট্রিং ঠিকভাবে পাঠাতে হবে। এটা সঠিকভাবে সেট হওয়ার পর স্টোরফ্রন্টে প্রোডাক্ট ইমেজ আপনা আপনি দেখাবে।
 
 ---
 
@@ -10,106 +62,152 @@
 
 | API | পাথ | ইমেজ ফিল্ড |
 |-----|-----|-------------|
-| প্রোডাক্ট লিস্ট | `GET /api/ecommerce/products` | প্রতিটি প্রোডাক্টে `images` |
-| সিঙ্গেল প্রোডাক্ট | `GET /api/ecommerce/products/[id]` | প্রোডাক্ট অবজেক্টে `images` |
+| প্রোডাক্ট লিস্ট | `GET /api/ecommerce/products` | প্রতিটি প্রোডাক্টে `images`, `variationImages` |
+| সিঙ্গেল প্রোডাক্ট | `GET /api/ecommerce/products/[id]` | প্রোডাক্ট অবজেক্টে `images`, `variationImages` |
 
 ---
 
-## ২. `images` ফিল্ডের ফরম্যাট
+## ২. প্রোডাক্ট ইমেজের রিকোয়ারমেন্ট (API দিয়ে যাবে)
+
+অ্যাডমিন থেকে প্রোডাক্ট ইমেজ আপলোড করলে বা API দিয়ে ইমেজ সেট করলে নিচের নিয়ম মানতে হবে:
+
+| রিকোয়ারমেন্ট | মান |
+|----------------|-----|
+| **অ্যাসপেক্ট রেশিও** | **১:১ (বর্গ)** — width ও height সমান হতে হবে। অন্য রেশিও হলে স্টোরফ্রন্টে লেআউট ভাঙতে পারে। |
+| ফরম্যাট | জেপিজি, পিএনজি ইত্যাদি (সাধারণ ইমেজ টাইপ) |
+| মেইন ইমেজ | `images` ফিল্ডে কমা-সেপারেটেড URL; একাধিক দিলে গ্যালারি। |
+
+**সংক্ষেপে:** প্রোডাক্ট ইমেজ **১:১ রেশিও** হতে হবে; API দিয়ে যে ইমেজ পাঠানো হয় সেগুলো এই নিয়ম মেনে আপলোড/সেট করা উচিত।
+
+---
+
+## ৩. ফিল্ড ফরম্যাট
+
+### ৩.১ `images` (মেইন ইমেজ + মাল্টিপল ইমেজ)
 
 | ফিল্ড | টাইপ | বর্ণনা |
 |-------|------|--------|
-| `images` | string | একাধিক URL **কমা দিয়ে** জড়ানো (comma-separated)। ফাঁকা বা null হতে পারে। |
+| `images` | string \| null | একাধিক URL **কমা দিয়ে** (comma-separated)। মেইন প্রোডাক্ট ইমেজ; একটির বেশি দিলে গ্যালারি। **ইমেজ ১:১ রেশিও হতে হবে।** ফাঁকা বা null হতে পারে। |
+
+উদাহরণ:
+
+```json
+"images": "/api/image/clxx111,/api/image/clxx222"
+```
+
+- একটির বেশি ইমেজ = গ্যালারিতে সব দেখান (প্রথমটা থাম্বনেইল, বাকিগুলো স্লাইড/গ্রিড)।
+- ইমেজ না থাকলে: `""` বা `null`।
+
+### ৩.২ `variationImages` (ভ্যারিয়েশন অনুযায়ী ইমেজ)
+
+| ফিল্ড | টাইপ | বর্ণনা |
+|-------|------|--------|
+| `variationImages` | string \| null | **JSON স্ট্রিং**। Key = ভ্যারিয়েশন key (অ্যাডমিনে যেমন সেট করা), value = সেই ভ্যারিয়েশনের ইমেজগুলো কমা দিয়ে। |
+
+**Key ফরম্যাট (অ্যাডমিনের সাথে মিল রেখে):** সাধারণত **`Size-Color`** — যেমন `"M-Red"`, `"L-Blue"`, `"S-Black"`। স্টোরফ্রন্টে ইউজার যখন **সাইজ + কালার** সিলেক্ট করবে, একই ফরম্যাটে key বানিয়ে (যেমন `M` + `Red` → `"M-Red"`) এই অবজেক্ট থেকে ইমেজ নেবেন।
 
 উদাহরণ রেসপন্স:
 
 ```json
-{
-  "id": "clxx...",
-  "name": "Product Name",
-  "images": "/api/image/clxx111,/api/image/clxx222",
-  ...
-}
+"variationImages": "{\"M-Red\":\"/api/image/a1,/api/image/a2\",\"L-Blue\":\"/api/image/b1\",\"S-Black\":\"/api/image/c1\"}"
 ```
 
-অন্য উদাহরণ (পাবলিক আপলোড ফোল্ডার ব্যবহার করলে):
+পার্স করলে:
 
-```json
-"images": "/uploads/1709123456-abc12.jpg"
+```javascript
+const variationImages = JSON.parse(product.variationImages || "{}");
+// { "M-Red": "/api/image/a1,/api/image/a2", "L-Blue": "/api/image/b1", "S-Black": "/api/image/c1" }
 ```
 
-- একটির বেশি ইমেজ থাকলে: `"url1,url2,url3"`
-- ইমেজ না থাকলে: `""` বা `null`
+- ভ্যারিয়েশন **থাকলে** এবং ইউজার **কালার/সাইজ সিলেক্ট করলে** → ওই key-এর value (কমা-সেপারেটেড) থেকে ইমেজ অ্যারে বানিয়ে দেখাবেন।
+- ভ্যারিয়েশন **নেই** বা সিলেক্ট করা key-এর জন্য কোনও ইমেজ **নেই** → মেইন **`images`** ব্যবহার করুন।
 
 ---
 
-## ৩. স্টোরফ্রন্টে ইমেজ URL বানানো (জরুরি)
+## ৪. স্টোরফ্রন্টে ইমেজ দেখানোর লজিক (কালার সিলেক্ট = ওই কালারের ইমেজ)
 
-API থেকে যে মান আসে সেটা **অ্যাডমিন সাইটের রিলেটিভ পাথ** (যেমন `/api/image/xyz` বা `/uploads/foo.jpg`)।  
-স্টোরফ্রন্ট **আলাদা ডোমেইনে** থাকলে (যেমন `https://shop.com`), `<img src="/api/image/xyz">` দিলে ব্রাউজার `https://shop.com/api/image/xyz` হিট করবে — সেখানে ইমেজ নেই, তাই **ইমেজ দেখাবে না**।
+1. **ভ্যারিয়েশন আছে কিনা** চেক করুন: `variationImages` পার্স করে keys থাকলে ভ্যারিয়েশন আছে।
+2. **ইউজার সিলেক্ট করেছে** (যেমন Size = M, Color = Red) → key বানান: `"M-Red"` (সাইজ-হাইফেন-কালার)।
+3. **ওই key-এর ইমেজ আছে কিনা** চেক করুন: `variationImages["M-Red"]`।
+   - **আছে** → সেই স্ট্রিংটা কমা দিয়ে স্প্লিট করে ইমেজ অ্যারে নিন → **ওই ইমেজগুলো দেখান** (একাধিক হলে গ্যালারি)।
+   - **নেই** (বা ভ্যারিয়েশনই নেই) → **মেইন `images`** ব্যবহার করুন (কমা স্প্লিট করে অ্যারে, গ্যালারি সাপোর্ট)।
+4. **মাল্টিপল ইমেজ:** যেকোনো সোর্স থেকে পাওয়া স্ট্রিং (হয় `images` নয়তো variationImages[key]) — কমা দিয়ে স্প্লিট করে সব URL গ্যালারিতে দেখান।
 
-তাই প্রতিটি ইমেজ পাথের সামনে **অ্যাডমিন/API-র বেস URL** যোগ করতে হবে।
+সংক্ষেপে: **ভ্যারিয়েশন থাকলে এবং কালার (ও সাইজ) সিলেক্ট করলে ওই ভ্যারিয়েশনের ইমেজ দেখাবেন; অন্যথায় মেইন ইমেজ। সব জায়গায় একাধিক ইমেজ থাকলে গ্যালারি সাপোর্ট করুন।**
+
+---
+
+## ৫. ফুল ইমেজ URL বানানো (জরুরি)
+
+API থেকে যে মান আসে সেটা **রিলেটিভ পাথ** (যেমন `/api/image/xyz`)। স্টোরফ্রন্ট **আলাদা ডোমেইনে** থাকলে প্রতিটি পাথের সামনে **অ্যাডমিনের বেস URL** যোগ করতে হবে।
 
 ### বেস URL
-
-একই env যেটা বাকি API-তে ব্যবহার করছেন:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=https://your-admin-domain.com
 ```
 
-লোকাল অ্যাডমিনের জন্য: `http://localhost:3000`
+লোকাল: `http://localhost:3000`
 
-### ফুল ইমেজ URL বানানোর নিয়ম
-
-1. `images` string টা কমা দিয়ে স্প্লিট করুন → অ্যারে।
-2. প্রতিটি আইটেম যেটা রিলেটিভ পাথ (যা `/` দিয়ে শুরু) সেটার আগে `API_BASE` যোগ করুন।
-
-জাভাস্ক্রিপ্ট উদাহরণ:
+### হেল্পার: রিলেটিভ পাথ → ফুল URL অ্যারে
 
 ```javascript
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
-function getProductImageUrls(imagesString) {
+function toFullUrls(imagesString) {
   if (!imagesString || !imagesString.trim()) return [];
   return imagesString.split(",").map((url) => {
     const trimmed = url.trim();
     if (!trimmed) return "";
     if (trimmed.startsWith("http")) return trimmed;
     return `${API_BASE}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
-  });
+  }).filter(Boolean);
 }
-
-// ব্যবহার
-const product = await apiGet("/api/ecommerce/products/123");
-const imageUrls = getProductImageUrls(product.images);
-// প্রথম ইমেজ
-<img src={imageUrls[0]} alt={product.name} />
-// সব ইমেজ (গ্যালারি)
-imageUrls.map((src) => <img key={src} src={src} alt="" />);
 ```
 
-React/Next.js উদাহরণ:
+### স্টোরফ্রন্টে কোন ইমেজ অ্যারে ব্যবহার করবেন
 
-```tsx
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+```javascript
+function getDisplayImageUrls(product, selectedSize, selectedColor) {
+  const variationImages = JSON.parse(product.variationImages || "{}");
+  const variationKeys = Object.keys(variationImages);
 
-function ProductImage({ product }: { product: { images: string | null; name: string } }) {
-  const urls = product.images
-    ? product.images.split(",").map((u) => u.trim()).filter(Boolean)
-    : [];
-  const fullUrls = urls.map((u) => (u.startsWith("http") ? u : `${API_BASE}${u.startsWith("/") ? "" : "/"}${u}`));
-  const main = fullUrls[0];
-  if (!main) return <div className="no-image">No image</div>;
-  return <img src={main} alt={product.name} />;
+  // ভ্যারিয়েশন আছে এবং সাইজ+কালার সিলেক্ট করা আছে
+  if (variationKeys.length > 0 && selectedSize && selectedColor) {
+    const key = `${selectedSize}-${selectedColor}`;
+    const variationUrls = variationImages[key];
+    if (variationUrls && variationUrls.trim()) {
+      return toFullUrls(variationUrls);
+    }
+  }
+
+  // অন্যথায় মেইন ইমেজ
+  return toFullUrls(product.images || "");
 }
+```
+
+ব্যবহার:
+
+```jsx
+// কালার সিলেক্ট করলে ওই কালারের ইমেজ; নাহলে মেইন ইমেজ
+const urls = getDisplayImageUrls(product, selectedSize, selectedColor);
+
+if (urls.length === 0) return <div>No image</div>;
+
+// একাধিক ইমেজ = গ্যালারি (প্রথমটা মেইন, বাকি স্লাইড/থাম্ব)
+<img src={urls[0]} alt={product.name} />
+{urls.length > 1 && (
+  <div className="gallery">
+    {urls.map((src, i) => <img key={i} src={src} alt="" />)}
+  </div>
+)}
 ```
 
 ---
 
-## ৪. ইমেজ সার্ভ API (ব্রাউজার যেটা হিট করে)
+## ৬. ইমেজ সার্ভ API (ব্রাউজার যেটা হিট করে)
 
-প্রোডাক্টের `images` স্ট্রিং-এ যে পাথগুলো থাকে (যেমন `/api/image/clxx...`) সেগুলোই ব্রাউজার রিকোয়েস্ট করে। সেই রিকোয়েস্ট যেখানে হ্যান্ডল হয়:
+প্রোডাক্টের `images` বা `variationImages`-এ যে পাথগুলো থাকে (যেমন `/api/image/clxx...`) সেগুলোই ব্রাউজার রিকোয়েস্ট করে।
 
 | বিষয় | মান |
 |-------|-----|
@@ -117,46 +215,37 @@ function ProductImage({ product }: { product: { images: string | null; name: str
 | Path | `/api/image/[id]` |
 | অথেন্টিকেশন | লাগে না (পাবলিক) |
 
-`[id]` = ডাটাবেইসের StoredImage আইডি (প্রোডাক্টের `images` স্ট্রিং-এ যে ID গুলো আছে)।
-
 - সফল: **২০০** + ইমেজ বডি (binary), হেডারে `Content-Type` (যেমন `image/jpeg`)।
 - ইমেজ না পেলে: **৪০৪**।
 
-স্টোরফ্রন্ট শুধু `<img src={fullUrl}>` দিলেই হবে; আলাদা করে এই এন্ডপয়েন্ট কল করার দরকার নেই। শর্ত শুধু একটাই: **ইমেজের ফুল URL** যেন অ্যাডমিন ডোমেইন দিয়ে বানানো হয় (উপরে বর্ণিত নিয়মে)।
+স্টোরফ্রন্ট শুধু `<img src={fullUrl}>` দিলেই হবে; ফুল URL = বেস URL + রিলেটিভ পাথ।
 
 ---
 
-## ৫. CORS (স্টোরফ্রন্ট আলাদা ডোমেইনে থাকলে)
+## ৭. CORS (স্টোরফ্রন্ট আলাদা ডোমেইনে থাকলে)
 
-স্টোরফ্রন্ট যদি অ্যাডমিন থেকে **ভিন্ন ডোমেইন** এ চলে (যেমন স্টোর `https://shop.com`, অ্যাডমিন `https://admin.com`), তাহলে অ্যাডমিন অ্যাপে **ইমেজ এন্ডপয়েন্টের জন্যও CORS** দিতে হবে। নাহলে ব্রাউজার ক্রস-অরিজিন ইমেজ রিকোয়েস্ট ব্লক করতে পারে।
-
-Next.js অ্যাডমিন প্রজেক্টে `next.config.ts` (বা `next.config.js`) এ `/api/image` যোগ করুন:
+স্টোরফ্রন্ট যদি অ্যাডমিন থেকে **ভিন্ন ডোমেইন** এ থাকে, অ্যাডমিন অ্যাপে **ইমেজ এন্ডপয়েন্টের জন্য CORS** দিতে হবে। অ্যাডমিনের `next.config.ts` এ ইতিমধ্যে `/api/image/:path*` এর জন্য CORS হেডার থাকা উচিত; না থাকলে যোগ করুন:
 
 ```ts
-async headers() {
-  return [
-    { source: "/api/ecommerce/:path*", headers: [ ... ] },
-    {
-      source: "/api/image/:path*",
-      headers: [
-        { key: "Access-Control-Allow-Origin", value: "*" },
-        { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
-      ],
-    },
-  ];
+{
+  source: "/api/image/:path*",
+  headers: [
+    { key: "Access-Control-Allow-Origin", value: storefrontOrigin },
+    { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
+  ],
 }
 ```
 
-প্রোডাকশনে `Access-Control-Allow-Origin` এ শুধু স্টোর ডোমেইন দিলে ভালো (যেমন `https://shop.example.com`)।
-
 ---
 
-## ৬. সংক্ষিপ্ত চেকলিস্ট
+## ৮. সংক্ষিপ্ত চেকলিস্ট
 
+- [ ] প্রোডাক্ট ইমেজ **১:১ রেশিও** এ আপলোড/সেট করা (API রিকোয়ারমেন্ট)।
 - [ ] প্রোডাক্ট ডেটা নিচ্ছেন: `GET /api/ecommerce/products` বা `GET /api/ecommerce/products/[id]`
-- [ ] `product.images` থেকে কমা স্প্লিট করে অ্যারে বানিয়েছেন
-- [ ] প্রতিটি রিলেটিভ পাথের আগে `NEXT_PUBLIC_API_BASE_URL` যোগ করে ফুল URL বানিয়েছেন
-- [ ] `<img src={fullUrl}>` এ ওই ফুল URL দিয়েছেন
-- [ ] স্টোরফ্রন্ট ভিন্ন ডোমেইনে থাকলে `/api/image/:path*` এর জন্য CORS হেডার দিয়েছেন
+- [ ] মেইন ইমেজ: `product.images` থেকে কমা স্প্লিট করে অ্যারে বানিয়েছেন; মাল্টিপল ইমেজ গ্যালারিতে দেখাচ্ছেন।
+- [ ] ভ্যারিয়েশন ইমেজ: `product.variationImages` JSON পার্স করে; **কালার (ও সাইজ) সিলেক্ট করলে** key বানিয়ে (যেমন `M-Red`) ওই key-এর ইমেজ দেখাচ্ছেন; নাহলে মেইন `images`।
+- [ ] প্রতিটি রিলেটিভ পাথের আগে `NEXT_PUBLIC_API_BASE_URL` যোগ করে ফুল URL বানিয়েছেন।
+- [ ] `<img src={fullUrl}>` এ ওই ফুল URL দিয়েছেন।
+- [ ] স্টোরফ্রন্ট ভিন্ন ডোমেইনে থাকলে `/api/image/:path*` এর জন্য CORS দিয়েছেন।
 
-এই ডক শুধু প্রোডাক্ট ইমেজের জন্য; বাকি এন্ডপয়েন্টের ডিটেইল [STOREFRONT-API.md](STOREFRONT-API.md) তে আছে।
+এই ডক শুধু প্রোডাক্ট ইমেজের জন্য; বাকি এন্ডপয়েন্ট [STOREFRONT-API.md](STOREFRONT-API.md) তে আছে।
