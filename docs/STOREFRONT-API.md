@@ -8,6 +8,8 @@
 
 **পেমেন্ট মেথড ও চেকআউট:** [STOREFRONT-API-PAYMENT-METHODS.md](STOREFRONT-API-PAYMENT-METHODS.md) – পেমেন্ট মেথড API, অর্ডারে পেমেন্ট ফিল্ড, চেকআউট UI লজিক।
 
+**ফুটার/হেডার মেনু:** [STOREFRONT-API-MENUS.md](STOREFRONT-API-MENUS.md) – মেনু API ও স্টোরফ্রন্টে কিভাবে মেনু দেখাবেন।
+
 **অ্যাডমিন ও স্টোরফ্রন্ট সুরক্ষিত সংযোগ:** [SECURE-CONNECTION.md](SECURE-CONNECTION.md) – CORS, env, চেকলিস্ট, কি কল করবেন/করবেন না।
 
 ---
@@ -320,7 +322,7 @@ const footerMenus = await apiGet("/api/ecommerce/menus", { placement: "footer" }
 ]
 ```
 
-স্টোরফ্রন্টে প্রতিটি গ্রুপের `label` হেডিং হিসেবে দেখান এবং `items` দিয়ে লিংক লিস্ট রেন্ডার করুন (যেমন `<a href={item.link}>{item.label}</a>`).
+স্টোরফ্রন্টে প্রতিটি গ্রুপের `label` হেডিং হিসেবে দেখান এবং `items` দিয়ে লিংক লিস্ট রেন্ডার করুন (যেমন `<a href={item.link}>{item.label}</a>`). **বিস্তারিত:** [স্টোরফ্রন্টে মেনু দেখানো](STOREFRONT-API-MENUS.md) – ফুটার/হেডারে কিভাবে ফেচ করে দেখাবেন তার পূর্ণ গাইড ও উদাহরণ।
 
 ---
 
