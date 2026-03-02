@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
+import { ProductActions } from "./ProductActions";
 
 export default async function ProductsPage() {
   const [user, products] = await Promise.all([
@@ -39,7 +40,7 @@ export default async function ProductsPage() {
                   <th className="h-12 px-4 text-right">Price</th>
                   <th className="h-12 px-4 text-right">Stock</th>
                   <th className="h-12 px-4 text-left">Status</th>
-                  <th className="h-12 w-10 px-2 text-right"></th>
+                  <th className="h-12 w-24 px-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -79,13 +80,7 @@ export default async function ProductsPage() {
                       )}
                     </td>
                     <td className="h-12 px-2 text-right">
-                      <Link
-                        href={`/products/${p.id}/edit`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 opacity-0 transition-opacity duration-150 group-hover:opacity-100 hover:bg-gray-100 hover:text-gray-900"
-                        aria-label="Edit"
-                      >
-                        …
-                      </Link>
+                      <ProductActions id={p.id} name={p.name} />
                     </td>
                   </tr>
                 ))}

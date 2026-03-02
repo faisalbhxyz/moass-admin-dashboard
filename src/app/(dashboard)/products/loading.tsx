@@ -1,14 +1,8 @@
 export default function ProductsLoading() {
   return (
-    <div className="min-h-full animate-pulse">
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="h-6 w-32 rounded bg-gray-200" />
-        <div className="mt-1 h-4 w-64 rounded bg-gray-100" />
-      </div>
-      <div className="p-6">
-        <div className="h-10 w-full rounded-lg bg-gray-200" />
-        <div className="mt-4 h-64 rounded-lg border border-gray-200 bg-white" />
-      </div>
+    <div className="flex min-h-[50vh] flex-col items-center justify-center">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-gray-900" aria-hidden />
+      <p className="mt-3 text-sm text-gray-500">Loading products…</p>
     </div>
   );
 }
