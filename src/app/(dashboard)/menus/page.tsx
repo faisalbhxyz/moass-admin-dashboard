@@ -10,14 +10,22 @@ export default async function MenusPage() {
   if (!user) redirect("/auth/v2/login");
 
   let groups: Awaited<ReturnType<typeof menuGroupToJson>>[] = [];
+  let categories: { id: string; name: string; slug: string }[] = [];
   try {
-    const rows = await prisma.menuGroup.findMany({
-      orderBy: { sortOrder: "asc" },
-      include: { items: { orderBy: { sortOrder: "asc" } } },
-    });
+    const [rows, catRows] = await Promise.all([
+      prisma.menuGroup.findMany({
+        orderBy: { sortOrder: "asc" },
+        include: { items: { orderBy: { sortOrder: "asc" } } },
+      }),
+      prisma.category.findMany({
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { id: true, name: true, slug: true },
+      }),
+    ]);
     groups = rows.map(menuGroupToJson);
+    categories = catRows;
   } catch (e) {
-    console.error("Menus page: failed to load menu groups", e);
+    console.error("Menus page: failed to load", e);
   }
 
   return (
@@ -28,7 +36,7 @@ export default async function MenusPage() {
         description="Manage menu groups (e.g. CATEGORY, QUICK LINKS) and their links. These appear on the storefront footer/header."
       />
       <div className="p-6">
-        <MenusClient initialGroups={groups} />
+        <MenusClient initialGroups={groups} initialCategories={categories} />
       </div>
     </div>
   );

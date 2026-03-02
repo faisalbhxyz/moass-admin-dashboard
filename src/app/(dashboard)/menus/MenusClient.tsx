@@ -33,13 +33,18 @@ type MenuGroupJson = {
 const inputClass =
   "h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900";
 
+type CategoryOption = { id: string; name: string; slug: string };
+
 export function MenusClient({
   initialGroups,
+  initialCategories = [],
 }: {
   initialGroups: MenuGroupJson[];
+  initialCategories?: CategoryOption[];
 }) {
   const router = useRouter();
   const [groups, setGroups] = useState(initialGroups);
+  const [categories] = useState<CategoryOption[]>(initialCategories);
   const [expanded, setExpanded] = useState<Set<string>>(new Set(groups.map((g) => g.id)));
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [addItemGroupId, setAddItemGroupId] = useState<string | null>(null);
@@ -50,6 +55,8 @@ export function MenusClient({
   const [newKey, setNewKey] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newPlacement, setNewPlacement] = useState<"header" | "footer">("footer");
+  const [newItemType, setNewItemType] = useState<"category" | "custom">("custom");
+  const [newItemCategorySlug, setNewItemCategorySlug] = useState("");
   const [newItemLabel, setNewItemLabel] = useState("");
   const [newItemLink, setNewItemLink] = useState("");
   const [editGroupLabel, setEditGroupLabel] = useState("");
@@ -136,9 +143,23 @@ export function MenusClient({
   }
 
   async function createItem(menuGroupId: string) {
-    if (!newItemLabel.trim() || !newItemLink.trim()) {
-      setError("Label and link required.");
-      return;
+    let label: string;
+    let link: string;
+    if (newItemType === "category") {
+      const cat = categories.find((c) => c.slug === newItemCategorySlug);
+      if (!cat) {
+        setError("Select a category.");
+        return;
+      }
+      label = cat.name;
+      link = `/categories/${cat.slug}`;
+    } else {
+      if (!newItemLabel.trim() || !newItemLink.trim()) {
+        setError("Label and link required.");
+        return;
+      }
+      label = newItemLabel.trim();
+      link = newItemLink.trim();
     }
     setSaving(true);
     setError("");
@@ -148,8 +169,8 @@ export function MenusClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           menuGroupId,
-          label: newItemLabel.trim(),
-          link: newItemLink.trim(),
+          label,
+          link,
           sortOrder: groups.find((g) => g.id === menuGroupId)?.items?.length ?? 0,
         }),
       });
@@ -166,6 +187,8 @@ export function MenusClient({
         )
       );
       setAddItemGroupId(null);
+      setNewItemType("custom");
+      setNewItemCategorySlug("");
       setNewItemLabel("");
       setNewItemLink("");
       router.refresh();
@@ -417,6 +440,8 @@ export function MenusClient({
                     variant="secondary"
                     onClick={() => {
                       setAddItemGroupId(g.id);
+                      setNewItemType("custom");
+                      setNewItemCategorySlug("");
                       setNewItemLabel("");
                       setNewItemLink("");
                       setError("");
@@ -431,22 +456,70 @@ export function MenusClient({
 
                 {addItemGroupId === g.id && (
                   <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-3">
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <input
-                        className={inputClass}
-                        placeholder="Label (e.g. Terms & Conditions)"
-                        value={newItemLabel}
-                        onChange={(e) => setNewItemLabel(e.target.value)}
-                      />
-                      <input
-                        className={inputClass}
-                        placeholder="Link (e.g. /terms)"
-                        value={newItemLink}
-                        onChange={(e) => setNewItemLink(e.target.value)}
-                      />
+                    <div className="mb-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setNewItemType("category")}
+                        className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                          newItemType === "category"
+                            ? "bg-gray-900 text-white"
+                            : "bg-white text-gray-600 ring-1 ring-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        From category
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewItemType("custom")}
+                        className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                          newItemType === "custom"
+                            ? "bg-gray-900 text-white"
+                            : "bg-white text-gray-600 ring-1 ring-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        Custom link
+                      </button>
                     </div>
+                    {newItemType === "category" ? (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-gray-500">Category</label>
+                        <select
+                          className={inputClass}
+                          value={newItemCategorySlug}
+                          onChange={(e) => setNewItemCategorySlug(e.target.value)}
+                        >
+                          <option value="">Select category…</option>
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.slug}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                        {categories.length === 0 && (
+                          <p className="text-xs text-gray-500">No categories yet. Add categories first or use Custom link.</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <input
+                          className={inputClass}
+                          placeholder="Label (e.g. Terms & Conditions)"
+                          value={newItemLabel}
+                          onChange={(e) => setNewItemLabel(e.target.value)}
+                        />
+                        <input
+                          className={inputClass}
+                          placeholder="Link (e.g. /terms)"
+                          value={newItemLink}
+                          onChange={(e) => setNewItemLink(e.target.value)}
+                        />
+                      </div>
+                    )}
                     <div className="mt-2 flex gap-2">
-                      <Button onClick={() => createItem(g.id)} disabled={saving}>
+                      <Button
+                        onClick={() => createItem(g.id)}
+                        disabled={saving || (newItemType === "category" && !newItemCategorySlug)}
+                      >
                         {saving ? "Adding…" : "Add"}
                       </Button>
                       <Button variant="secondary" onClick={() => setAddItemGroupId(null)}>
