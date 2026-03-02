@@ -6,6 +6,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Use project root so Vercel/build doesn't pick up parent lockfiles
   turbopack: { root: path.join(__dirname) },
+  // Keep serverless bundles smaller so "Deploying outputs" succeeds on Vercel
+  outputFileTracingExcludes: {
+    "*": [
+      "./docs/**",
+      "./scripts/**",
+      "./prisma/migrations/**",
+      "./.git/**",
+      "./*.md",
+    ],
+  },
 };
 
 export default nextConfig;
