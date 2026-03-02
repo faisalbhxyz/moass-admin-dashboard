@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import type { Section } from "@/types/homepage-sections";
 import { SECTION_META } from "@/lib/homepage-sections";
-import { Sparkles, TrendingUp, Star, Settings2 } from "lucide-react";
+import { Sparkles, TrendingUp, Star, Settings2, Pencil, Trash2 } from "lucide-react";
 
 const iconMap = {
   Sparkles,
@@ -22,9 +22,13 @@ function getIcon(key: string) {
 export function SectionCard({
   section,
   onManage,
+  onEdit,
+  onDelete,
 }: {
   section: Section;
   onManage: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const meta = SECTION_META[section.key as keyof typeof SECTION_META];
   const title = section.title ?? meta?.title ?? section.key;
@@ -76,17 +80,30 @@ export function SectionCard({
             )}
           </div>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onManage}
-          className="shrink-0"
-        >
-          <span className="inline-flex items-center gap-2">
-            <Settings2 className="h-4 w-4" />
-            Manage
-          </span>
-        </Button>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Button type="button" variant="secondary" onClick={onManage}>
+            <span className="inline-flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              Manage
+            </span>
+          </Button>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            aria-label="Edit section"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded-md p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+            aria-label="Delete section"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </CardBody>
     </Card>
   );
