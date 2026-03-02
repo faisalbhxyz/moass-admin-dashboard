@@ -93,6 +93,7 @@ model Customer {
   updatedAt DateTime @updatedAt
   orders    Order[]
   rewards   CustomerReward[]
+  searchHistory UserSearchHistory[]
 }
 
 model CustomerReward {
@@ -190,4 +191,27 @@ model OrderItem {
   quantity  Int
   price     Decimal
   createdAt DateTime @default(now())
+}
+
+// Search analytics: one row per search (for trending)
+model SearchLog {
+  id        String   @id @default(cuid())
+  query     String
+  userId    String?  // nullable for guests
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("search_logs")
+}
+
+// Per-customer search history (last 8 unique queries)
+model UserSearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      Customer @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query     String
+  searchedAt DateTime @default(now())
+
+  @@unique([userId, query])
+  @@map("user_search_history")
 }

@@ -581,6 +581,22 @@ console.log("Order placed:", order.orderNumber);
 
 ---
 
+### অর্ডার ট্র্যাক (পাবলিক)
+
+হেডার থেকে "Order Tracking" এ কাস্টমার অর্ডার নম্বর দিয়ে স্ট্যাটাস দেখতে পারে; **লগইন লাগে না**।
+
+| বিষয় | মান |
+|-------|-----|
+| **Method** | `GET` |
+| **Path** | `/api/ecommerce/orders/track` |
+| **Query** | `orderNumber` (required) — অর্ডার নম্বর (যেমন `00001`) |
+| **Auth** | নেই (পাবলিক) |
+
+- মিলে গেলে অর্ডার প্লেস রেসপন্সের মতোই একটি অর্ডার অবজেক্ট (id, orderNumber, status, customer, items, product ইত্যাদি) রিটার্ন হয়।
+- না মিললে `404` ও `{ "error": "Order not found" }`।
+
+---
+
 ## ৯. পাবলিক সেটিংস API
 
 সাইটের নাম, কারেন্সি ইত্যাদি সেটিংস (হেডার/ফুটার/কারেন্সি দেখানোর জন্য)।
@@ -737,6 +753,7 @@ console.log("Order placed:", order.orderNumber);
 | পেমেন্ট মেথড | GET | `/api/ecommerce/payment-methods` |
 | কুপন ভ্যালিডেট | POST | `/api/ecommerce/coupons/validate` |
 | অর্ডার প্লেস | POST | `/api/ecommerce/orders` |
+| অর্ডার ট্র্যাক (পাবলিক) | GET | `/api/ecommerce/orders/track?orderNumber=XXX` |
 | পাবলিক সেটিংস | GET | `/api/ecommerce/settings` |
 
 কাস্টমার লগইন, প্রোফাইল, অর্ডার ও রিওয়ার্ডের জন্য [STOREFRONT-API-CUSTOMER-AUTH.md](STOREFRONT-API-CUSTOMER-AUTH.md) দেখুন।

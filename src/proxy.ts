@@ -44,38 +44,43 @@ function corsHeaders(origin: string | null): Record<string, string> {
 }
 
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  try {
+    const { pathname } = request.nextUrl;
 
-  // CORS for storefront API (localhost + STOREFRONT_ORIGIN)
-  const isCorsPath = CORS_PATHS.some((p) => pathname.startsWith(p));
-  if (isCorsPath) {
-    const origin = request.headers.get("origin");
-    if (request.method === "OPTIONS") {
-      return new NextResponse(null, {
-        status: 204,
-        headers: {
-          ...corsHeaders(origin),
-          "Access-Control-Max-Age": "86400",
-        },
-      });
+    // CORS for storefront API (localhost + STOREFRONT_ORIGIN)
+    const isCorsPath = CORS_PATHS.some((p) => pathname.startsWith(p));
+    if (isCorsPath) {
+      const origin = request.headers.get("origin");
+      if (request.method === "OPTIONS") {
+        return new NextResponse(null, {
+          status: 204,
+          headers: {
+            ...corsHeaders(origin),
+            "Access-Control-Max-Age": "86400",
+          },
+        });
+      }
+      const res = NextResponse.next();
+      Object.entries(corsHeaders(origin)).forEach(([k, v]) =>
+        res.headers.set(k, v)
+      );
+      return res;
     }
-    const res = NextResponse.next();
-    Object.entries(corsHeaders(origin)).forEach(([k, v]) =>
-      res.headers.set(k, v)
-    );
-    return res;
-  }
 
-  // Auth guard for dashboard pages
-  if (isPublic(pathname)) return NextResponse.next();
+    // Auth guard for dashboard pages
+    if (isPublic(pathname)) return NextResponse.next();
 
-  const token = request.cookies.get("ecomdash_session")?.value;
-  if (!token) {
-    const login = new URL("/auth/v2/login", request.url);
-    login.searchParams.set("from", pathname);
-    return NextResponse.redirect(login);
+    const token = request.cookies.get("ecomdash_session")?.value;
+    if (!token) {
+      const login = new URL("/auth/v2/login", request.url);
+      login.searchParams.set("from", pathname);
+      return NextResponse.redirect(login);
+    }
+    return NextResponse.next();
+  } catch (err) {
+    console.error("[proxy] error:", err);
+    return NextResponse.next();
   }
-  return NextResponse.next();
 }
 
 export const config = {

@@ -79,8 +79,15 @@ export default async function DashboardPage({
     }).catch(() => []),
     prisma.orderItem.findMany({
       where: { order: { createdAt: { gte: from, lte: to } } },
-      select: { quantity: true, price: true, productId: true, orderId: true },
-      include: { product: { select: { categoryId: true, category: { select: { id: true, name: true } } } } },
+      select: {
+        quantity: true,
+        price: true,
+        productId: true,
+        orderId: true,
+        product: {
+          select: { categoryId: true, category: { select: { id: true, name: true } } },
+        },
+      },
     }).catch(() => []),
     prisma.order.findMany({
       where: { createdAt: { gte: from, lte: to }, customerId: { not: null } },

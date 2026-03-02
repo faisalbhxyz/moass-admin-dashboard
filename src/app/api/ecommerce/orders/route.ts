@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
           data: {
             customerId,
             points: pointsToAdd,
-            reason: `অর্ডার #${orderNumber}`,
+            reason: `অর্ডার #${order.orderNumber}`,
             orderId: order.id,
           },
         });
