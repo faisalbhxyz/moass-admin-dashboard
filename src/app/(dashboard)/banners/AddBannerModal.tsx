@@ -57,34 +57,39 @@ export function AddBannerModal({ open, onClose }: AddBannerModalProps) {
     }
     setSaving(true);
     try {
+      let imageUrlToUse = imageUrl;
       if (imageFile) {
-        const formData = new FormData();
-        formData.set("file", imageFile);
-        if (title) formData.set("title", title);
-        if (link) formData.set("link", link);
-        const res = await fetch("/api/admin/banners", { method: "POST", body: formData });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(data.error || "Failed to create banner.");
+        // Same as product image: upload first, then create with URL (avoids LONGBLOB/body size issues)
+        const uploadForm = new FormData();
+        uploadForm.set("file", imageFile);
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadForm });
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        if (!uploadRes.ok) {
+          setError(uploadData.error || "Image upload failed. Try again.");
           setSaving(false);
           return;
         }
-      } else {
-        const res = await fetch("/api/admin/banners", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: title || undefined,
-            image: imageUrl,
-            link: link || undefined,
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(data.error || "Failed to create banner.");
+        imageUrlToUse = uploadData.url;
+        if (!imageUrlToUse) {
+          setError("Upload did not return an image URL.");
           setSaving(false);
           return;
         }
+      }
+      const res = await fetch("/api/admin/banners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title || undefined,
+          image: imageUrlToUse,
+          link: link || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Failed to create banner.");
+        setSaving(false);
+        return;
       }
       router.refresh();
       onClose();

@@ -8,10 +8,17 @@ import { BannersClient } from "./BannersClient";
 export default async function BannersPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/v2/login");
-  const rows = await prisma.banner.findMany({
-    orderBy: { sortOrder: "asc" },
-  }).catch(() => []);
-  const banners = rows.map(bannerToJson);
+
+  let banners: { id: string; title: string | null; image: string; link: string | null; sortOrder: number; active: boolean }[] = [];
+  try {
+    const rows = await prisma.banner.findMany({
+      orderBy: { sortOrder: "asc" },
+    });
+    banners = rows.map(bannerToJson);
+  } catch (e) {
+    console.error("Banners page: failed to load banners", e);
+  }
+
   return (
     <div className="min-h-full">
       <TopBar breadcrumbs={[{ label: "Banners" }]} />
