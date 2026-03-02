@@ -16,6 +16,11 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
+/** Production storefront domains allowed for CORS (API calls from storefront). */
+const ALLOWED_STOREFRONT_ORIGINS = [
+  "https://swift-e-shop.vercel.app",
+];
+
 function getAllowedOrigins(): string[] {
   const fromEnv = (process.env.STOREFRONT_ORIGIN || "")
     .split(",")
@@ -24,10 +29,14 @@ function getAllowedOrigins(): string[] {
   const localhost = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
   ];
-  return [...new Set([...fromEnv, ...localhost])];
+  return [...new Set([...ALLOWED_STOREFRONT_ORIGINS, ...fromEnv, ...localhost])];
 }
 
 function corsHeaders(origin: string | null): Record<string, string> {
