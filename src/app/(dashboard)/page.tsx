@@ -25,25 +25,25 @@ export default async function DashboardPage() {
     inStockCount,
     outStockCount,
   ] = await Promise.all([
-    prisma.order.count({ where: { createdAt: { gte: oneYearAgo } } }),
-    prisma.order.aggregate({ _sum: { total: true }, where: { createdAt: { gte: oneYearAgo } } }),
-    prisma.order.count({ where: { status: "delivered", createdAt: { gte: oneYearAgo } } }),
-    prisma.order.count({ where: { status: "cancelled", createdAt: { gte: oneYearAgo } } }),
-    prisma.product.count(),
+    prisma.order.count({ where: { createdAt: { gte: oneYearAgo } } }).catch(() => 0),
+    prisma.order.aggregate({ _sum: { total: true }, where: { createdAt: { gte: oneYearAgo } } }).catch(() => ({ _sum: { total: null } })),
+    prisma.order.count({ where: { status: "delivered", createdAt: { gte: oneYearAgo } } }).catch(() => 0),
+    prisma.order.count({ where: { status: "cancelled", createdAt: { gte: oneYearAgo } } }).catch(() => 0),
+    prisma.product.count().catch(() => 0),
     prisma.order.findMany({
       where: { createdAt: { gte: oneYearAgo } },
       select: { total: true, createdAt: true },
-    }),
+    }).catch(() => []),
     prisma.order.findMany({
       take: 10,
       orderBy: { createdAt: "desc" },
       include: { customer: true, items: { take: 1, include: { product: true } } },
-    }),
-    prisma.product.count({ where: { stock: { gt: 0 }, published: true } }),
-    prisma.product.count({ where: { OR: [{ stock: 0 }, { published: false }] } }),
+    }).catch(() => []),
+    prisma.product.count({ where: { stock: { gt: 0 }, published: true } }).catch(() => 0),
+    prisma.product.count({ where: { OR: [{ stock: 0 }, { published: false }] } }).catch(() => 0),
   ]);
 
-  const revenue = Number(totalRevenue._sum.total ?? 0);
+  const revenue = Number(totalRevenue._sum?.total ?? 0);
 
   return (
     <div className="min-h-full">
