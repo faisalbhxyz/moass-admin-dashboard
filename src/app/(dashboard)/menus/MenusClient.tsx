@@ -34,17 +34,21 @@ const inputClass =
   "h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900";
 
 type CategoryOption = { id: string; name: string; slug: string };
+type PageOption = { id: string; slug: string; title: string };
 
 export function MenusClient({
   initialGroups,
   initialCategories = [],
+  initialPages = [],
 }: {
   initialGroups: MenuGroupJson[];
   initialCategories?: CategoryOption[];
+  initialPages?: PageOption[];
 }) {
   const router = useRouter();
   const [groups, setGroups] = useState(initialGroups);
   const [categories] = useState<CategoryOption[]>(initialCategories);
+  const [pages] = useState<PageOption[]>(initialPages);
   const [expanded, setExpanded] = useState<Set<string>>(new Set(groups.map((g) => g.id)));
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [addItemGroupId, setAddItemGroupId] = useState<string | null>(null);
@@ -55,8 +59,9 @@ export function MenusClient({
   const [newKey, setNewKey] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newPlacement, setNewPlacement] = useState<"header" | "footer">("footer");
-  const [newItemType, setNewItemType] = useState<"category" | "custom">("custom");
+  const [newItemType, setNewItemType] = useState<"category" | "page" | "custom">("custom");
   const [newItemCategorySlug, setNewItemCategorySlug] = useState("");
+  const [newItemPageSlug, setNewItemPageSlug] = useState("");
   const [newItemLabel, setNewItemLabel] = useState("");
   const [newItemLink, setNewItemLink] = useState("");
   const [editGroupLabel, setEditGroupLabel] = useState("");
@@ -153,6 +158,14 @@ export function MenusClient({
       }
       label = cat.name;
       link = `/categories/${cat.slug}`;
+    } else if (newItemType === "page") {
+      const page = pages.find((p) => p.slug === newItemPageSlug);
+      if (!page) {
+        setError("Select a page.");
+        return;
+      }
+      label = page.title;
+      link = `/page/${page.slug}`;
     } else {
       if (!newItemLabel.trim() || !newItemLink.trim()) {
         setError("Label and link required.");
@@ -189,6 +202,7 @@ export function MenusClient({
       setAddItemGroupId(null);
       setNewItemType("custom");
       setNewItemCategorySlug("");
+      setNewItemPageSlug("");
       setNewItemLabel("");
       setNewItemLink("");
       router.refresh();
@@ -442,6 +456,7 @@ export function MenusClient({
                       setAddItemGroupId(g.id);
                       setNewItemType("custom");
                       setNewItemCategorySlug("");
+                      setNewItemPageSlug("");
                       setNewItemLabel("");
                       setNewItemLink("");
                       setError("");
@@ -456,7 +471,7 @@ export function MenusClient({
 
                 {addItemGroupId === g.id && (
                   <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-3">
-                    <div className="mb-3 flex gap-2">
+                    <div className="mb-3 flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => setNewItemType("category")}
@@ -467,6 +482,17 @@ export function MenusClient({
                         }`}
                       >
                         From category
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewItemType("page")}
+                        className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                          newItemType === "page"
+                            ? "bg-gray-900 text-white"
+                            : "bg-white text-gray-600 ring-1 ring-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        From page
                       </button>
                       <button
                         type="button"
@@ -499,6 +525,25 @@ export function MenusClient({
                           <p className="text-xs text-gray-500">No categories yet. Add categories first or use Custom link.</p>
                         )}
                       </div>
+                    ) : newItemType === "page" ? (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-gray-500">Page (Policy, Terms, etc.)</label>
+                        <select
+                          className={inputClass}
+                          value={newItemPageSlug}
+                          onChange={(e) => setNewItemPageSlug(e.target.value)}
+                        >
+                          <option value="">Select page…</option>
+                          {pages.map((p) => (
+                            <option key={p.id} value={p.slug}>
+                              {p.title}
+                            </option>
+                          ))}
+                        </select>
+                        {pages.length === 0 && (
+                          <p className="text-xs text-gray-500">No pages yet. Add pages in Pages first, or use Custom link.</p>
+                        )}
+                      </div>
                     ) : (
                       <div className="grid gap-2 sm:grid-cols-2">
                         <input
@@ -518,7 +563,11 @@ export function MenusClient({
                     <div className="mt-2 flex gap-2">
                       <Button
                         onClick={() => createItem(g.id)}
-                        disabled={saving || (newItemType === "category" && !newItemCategorySlug)}
+                        disabled={
+                          saving ||
+                          (newItemType === "category" && !newItemCategorySlug) ||
+                          (newItemType === "page" && !newItemPageSlug)
+                        }
                       >
                         {saving ? "Adding…" : "Add"}
                       </Button>

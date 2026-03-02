@@ -237,3 +237,14 @@ model UserSearchHistory {
   @@unique([userId, query])
   @@map("user_search_history")
 }
+
+// CMS-style pages: Policy, Terms & Conditions, Return Policy, etc. (rich text / HTML)
+model ContentPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique  // e.g. "policy", "terms", "return-policy"
+  title     String
+  content   String   @db.LongText  // HTML content; storefront renders as-is
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

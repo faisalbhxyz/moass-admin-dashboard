@@ -16,6 +16,7 @@
 - **Add menu group** দিয়ে গ্রুপ বানান (যেমন "Quick Links", "CATEGORY")। Placement **footer** বা **header** দিন।
 - প্রতিটি গ্রুপে **Add item** দিয়ে:
   - **From category** – ক্যাটাগরি সিলেক্ট করলে অটোভাবে লিংক `/categories/{slug}` ও ক্যাটাগরি নাম লেবেল হয়ে যাবে।
+  - **From page** – পেজ সিলেক্ট করলে (Policy, Terms, Return Policy ইত্যাদি) অটোভাবে লিংক `/page/{slug}` ও পেজ টাইটেল লেবেল হয়ে যাবে। পেজ আগে **Pages** সেকশনে তৈরি করতে হবে।
   - **Custom link** – নিজে লেবেল ও লিংক দিন (যেমন "Terms", `/terms`)।
 
 ### ধাপ ২: স্টোরফ্রন্ট প্রজেক্টে API বেস URL সেট করুন
@@ -54,6 +55,8 @@ NEXT_PUBLIC_API_BASE_URL=https://your-admin.vercel.app
 অ্যাডমিনে **From category** দিয়ে যে আইটেমগুলো যোগ করা হয়, তাদের `link` হয় **`/categories/{slug}`** (যেমন `/categories/electronics`)।
 
 স্টোরফ্রন্টে এই পাথের জন্য একটা পেজ/রাউট থাকতে হবে যেখানে ওই `slug` দিয়ে প্রোডাক্ট লিস্ট বা ক্যাটাগরি পেজ দেখাবেন। উদাহরণ: Next.js এ `app/categories/[slug]/page.tsx` বা `pages/categories/[slug].js`। ক্যাটাগরি ডেটা পেতে `GET /api/ecommerce/categories` ব্যবহার করতে পারেন ([STOREFRONT-API.md](STOREFRONT-API.md) দেখুন)।
+
+**From page** দিয়ে যোগ করা আইটেমের `link` হয় **`/page/{slug}`** (যেমন `/page/terms`, `/page/return-policy`)। স্টোরফ্রন্টে এই পাথের জন্য রাউট বানিয়ে `GET /api/ecommerce/pages/[slug]` দিয়ে কন্টেন্ট নিয়ে দেখান। বিস্তারিত: [STOREFRONT-API-PAGES.md](STOREFRONT-API-PAGES.md)।
 
 ---
 

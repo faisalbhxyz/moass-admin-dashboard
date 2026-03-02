@@ -22,6 +22,7 @@ import {
   LayoutList,
   Search,
   List,
+  FileText,
 } from "lucide-react";
 
 function LogoutButton() {
@@ -49,6 +50,7 @@ const mainNav = [
   { href: "/banners", label: "Banners", icon: Image },
   { href: "/homepage/sections", label: "Homepage Sections", icon: LayoutList },
   { href: "/menus", label: "Menus", icon: List },
+  { href: "/pages", label: "Pages", icon: FileText },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/coupons", label: "Coupons", icon: Ticket },
   { href: "/inventory", label: "Inventory", icon: Warehouse, badgeKey: "lowStock" },

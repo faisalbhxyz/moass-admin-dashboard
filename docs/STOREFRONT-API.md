@@ -10,6 +10,8 @@
 
 **ফুটার/হেডার মেনু:** [STOREFRONT-API-MENUS.md](STOREFRONT-API-MENUS.md) – মেনু API ও স্টোরফ্রন্টে কিভাবে মেনু দেখাবেন।
 
+**পলিসি, টার্মস, রিটার্ন পলিসি পেজ:** [STOREFRONT-API-PAGES.md](STOREFRONT-API-PAGES.md) – কন্টেন্ট পেজ API ও স্টোরফ্রন্টে HTML পেজ দেখানো।
+
 **অ্যাডমিন ও স্টোরফ্রন্ট সুরক্ষিত সংযোগ:** [SECURE-CONNECTION.md](SECURE-CONNECTION.md) – CORS, env, চেকলিস্ট, কি কল করবেন/করবেন না।
 
 ---
@@ -817,6 +819,8 @@ console.log("Order placed:", order.orderNumber);
 | কুপন ভ্যালিডেট | POST | `/api/ecommerce/coupons/validate` |
 | অর্ডার প্লেস | POST | `/api/ecommerce/orders` |
 | অর্ডার ট্র্যাক (পাবলিক) | GET | `/api/ecommerce/orders/track?orderNumber=XXX` |
+| পেজ লিস্ট (পলিসি/টার্মস ইত্যাদি) | GET | `/api/ecommerce/pages` |
+| সিঙ্গেল পেজ (HTML কন্টেন্ট) | GET | `/api/ecommerce/pages/[slug]` |
 | পাবলিক সেটিংস | GET | `/api/ecommerce/settings` |
 
 কাস্টমার লগইন, প্রোফাইল, অর্ডার ও রিওয়ার্ডের জন্য [STOREFRONT-API-CUSTOMER-AUTH.md](STOREFRONT-API-CUSTOMER-AUTH.md) দেখুন।
