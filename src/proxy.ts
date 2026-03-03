@@ -19,6 +19,8 @@ function isPublic(pathname: string): boolean {
 /** Production storefront domains allowed for CORS (API calls from storefront). */
 const ALLOWED_STOREFRONT_ORIGINS = [
   "https://swift-e-shop.vercel.app",
+  "https://www.moassfashion.com",
+  "https://moassfashion.com",
 ];
 
 function getAllowedOrigins(): string[] {
