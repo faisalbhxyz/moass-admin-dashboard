@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/";
+function LoginFormInner({ from }: { from: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,8 +24,8 @@ function LoginForm() {
         setError(data.error || "Login failed");
         return;
       }
-      router.push(from);
-      router.refresh();
+      // Full-page redirect so dashboard loads directly without client-side Loading state
+      window.location.href = from;
     } catch {
       setError("Network error");
     } finally {
@@ -82,20 +78,21 @@ function LoginForm() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-500">
-          No account?{" "}
-          <Link href="/auth/v2/register" className="font-medium text-gray-900 hover:underline">
-            Register
-          </Link>
-        </p>
       </div>
     </div>
   );
 }
 
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") || "/";
+  return <LoginFormInner from={from} />;
+}
+
 export default function LoginPage() {
+  // Fallback shows form immediately so user never sees "Loading..."
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#F9F9F9]">Loading…</div>}>
+    <Suspense fallback={<LoginFormInner from="/" />}>
       <LoginForm />
     </Suspense>
   );
