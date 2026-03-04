@@ -13,6 +13,7 @@ export default async function InventoryPage() {
     where: { stock: { lte: threshold }, published: true },
     orderBy: { stock: "asc" },
     include: { categories: true },
+    take: 500,
   });
   return (
     <div className="min-h-full">

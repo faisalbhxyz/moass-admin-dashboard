@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     where: { stock: { lte: threshold }, published: true },
     orderBy: { stock: "asc" },
     include: { categories: true },
+    take: 500,
   });
   return NextResponse.json({ lowStock, threshold });
 }

@@ -82,6 +82,7 @@ export async function resolveSectionProducts(
       by: ["productId"],
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: "desc" } },
+      take: 100,
     });
     const productIds = sold.map((s) => s.productId).filter((id) => !excludeIds.has(id)).slice(0, takeAuto);
     if (productIds.length > 0) {

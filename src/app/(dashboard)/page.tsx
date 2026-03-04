@@ -13,6 +13,21 @@ import { TopCategoryList } from "./TopCategoryList";
 import { TopCustomerList } from "./TopCustomerList";
 import { getDateRangeFromSearch, formatDateRangeLabel } from "@/lib/dashboard-date";
 
+/** Safe query helper: logs errors in dev, returns fallback. */
+async function safeQuery<T>(
+  fn: () => Promise<T>,
+  fallback: T
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[Dashboard] Query error:", err);
+    }
+    return fallback;
+  }
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -26,9 +41,10 @@ export default async function DashboardPage({
   const dateLabel = formatDateRangeLabel(dateRange);
   const { from, to } = dateRange;
 
-  const lowStockSetting = await prisma.setting
-    .findUnique({ where: { key: "low_stock_threshold" } })
-    .catch(() => null);
+  const lowStockSetting = await safeQuery(
+    () => prisma.setting.findUnique({ where: { key: "low_stock_threshold" } }),
+    null
+  );
   const lowStockThreshold = Math.max(0, parseInt(lowStockSetting?.value ?? "5", 10));
 
   const [
@@ -43,67 +59,112 @@ export default async function DashboardPage({
     outStockCount,
     pendingOrdersCount,
     lowStockCount,
-    ordersForAov,
     topProductsRaw,
     orderItemsForCategories,
     ordersForTopCustomers,
   ] = await Promise.all([
-    prisma.order.count({ where: { createdAt: { gte: from, lte: to } } }).catch(() => 0),
-    prisma.order.aggregate({ _sum: { total: true }, where: { createdAt: { gte: from, lte: to } } }).catch(() => ({ _sum: { total: null } })),
-    prisma.order.count({ where: { status: "delivered", createdAt: { gte: from, lte: to } } }).catch(() => 0),
-    prisma.order.count({ where: { status: "cancelled", createdAt: { gte: from, lte: to } } }).catch(() => 0),
-    prisma.product.count().catch(() => 0),
-    prisma.order.findMany({
-      where: { createdAt: { gte: from, lte: to } },
-      select: { total: true, createdAt: true },
-    }).catch(() => []),
-    prisma.order.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      include: { customer: true, items: { take: 1, include: { product: true } } },
-    }).catch(() => []),
-    prisma.product.count({ where: { stock: { gt: 0 }, published: true } }).catch(() => 0),
-    prisma.product.count({ where: { OR: [{ stock: 0 }, { published: false }] } }).catch(() => 0),
-    prisma.order.count({ where: { status: { in: ["pending", "shipped"] }, createdAt: { gte: from, lte: to } } }).catch(() => 0),
-    prisma.product.count({ where: { stock: { lte: lowStockThreshold }, published: true } }).catch(() => 0),
-    prisma.order.findMany({
-      where: { createdAt: { gte: from, lte: to } },
-      select: { total: true },
-    }).catch(() => []),
-    prisma.orderItem.groupBy({
-      by: ["productId"],
-      _sum: { quantity: true },
-      where: { order: { createdAt: { gte: from, lte: to } } },
-      orderBy: { _sum: { quantity: "desc" } },
-      take: 10,
-    }).catch(() => []),
-    prisma.orderItem.findMany({
-      where: { order: { createdAt: { gte: from, lte: to } } },
-      select: {
-        quantity: true,
-        price: true,
-        productId: true,
-        orderId: true,
-        product: {
-          select: { categories: { take: 1, select: { id: true, name: true } } },
-        },
-      },
-    }).catch(() => []),
-    prisma.order.findMany({
-      where: { createdAt: { gte: from, lte: to }, customerId: { not: null } },
-      select: { customerId: true, total: true },
-    }).catch(() => []),
+    safeQuery(() => prisma.order.count({ where: { createdAt: { gte: from, lte: to } } }), 0),
+    safeQuery(
+      () => prisma.order.aggregate({ _sum: { total: true }, where: { createdAt: { gte: from, lte: to } } }),
+      { _sum: { total: null } }
+    ),
+    safeQuery(
+      () => prisma.order.count({ where: { status: "delivered", createdAt: { gte: from, lte: to } } }),
+      0
+    ),
+    safeQuery(
+      () => prisma.order.count({ where: { status: "cancelled", createdAt: { gte: from, lte: to } } }),
+      0
+    ),
+    safeQuery(() => prisma.product.count(), 0),
+    safeQuery(
+      () =>
+        prisma.order.findMany({
+          where: { createdAt: { gte: from, lte: to } },
+          select: { total: true, createdAt: true },
+          take: 5000,
+        }),
+      []
+    ),
+    safeQuery(
+      () =>
+        prisma.order.findMany({
+          take: 10,
+          orderBy: { createdAt: "desc" },
+          include: { customer: true, items: { take: 1, include: { product: true } } },
+        }),
+      []
+    ),
+    safeQuery(
+      () => prisma.product.count({ where: { stock: { gt: 0 }, published: true } }),
+      0
+    ),
+    safeQuery(
+      () => prisma.product.count({ where: { OR: [{ stock: 0 }, { published: false }] } }),
+      0
+    ),
+    safeQuery(
+      () =>
+        prisma.order.count({
+          where: { status: { in: ["pending", "shipped"] }, createdAt: { gte: from, lte: to } },
+        }),
+      0
+    ),
+    safeQuery(
+      () => prisma.product.count({ where: { stock: { lte: lowStockThreshold }, published: true } }),
+      0
+    ),
+    safeQuery(
+      () =>
+        prisma.orderItem.groupBy({
+          by: ["productId"],
+          _sum: { quantity: true },
+          where: { order: { createdAt: { gte: from, lte: to } } },
+          orderBy: { _sum: { quantity: "desc" } },
+          take: 10,
+        }),
+      []
+    ),
+    safeQuery(
+      () =>
+        prisma.orderItem.findMany({
+          where: { order: { createdAt: { gte: from, lte: to } } },
+          select: {
+            quantity: true,
+            price: true,
+            productId: true,
+            orderId: true,
+            product: {
+              select: { categories: { take: 1, select: { id: true, name: true } } },
+            },
+          },
+          take: 10000,
+        }),
+      []
+    ),
+    safeQuery(
+      () =>
+        prisma.order.findMany({
+          where: { createdAt: { gte: from, lte: to }, customerId: { not: null } },
+          select: { customerId: true, total: true },
+          take: 5000,
+        }),
+      []
+    ),
   ]);
 
   const revenue = Number(totalRevenue._sum?.total ?? 0);
-  const orderCountForAov = ordersForAov.length;
-  const aov = orderCountForAov > 0 ? revenue / orderCountForAov : 0;
+  const aov = totalOrders > 0 ? revenue / totalOrders : 0;
 
   const productIds = topProductsRaw.map((i) => i.productId);
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds } },
-    select: { id: true, name: true },
-  }).catch(() => []);
+  const products = await safeQuery(
+    () =>
+      prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true },
+      }),
+    []
+  );
   const productMap = Object.fromEntries(products.map((p) => [p.id, p]));
   const topProducts = topProductsRaw.map((i) => ({
     id: i.productId,
@@ -150,10 +211,14 @@ export default async function DashboardPage({
     .sort((a, b) => b[1].totalSpent - a[1].totalSpent)
     .slice(0, 5)
     .map(([id]) => id);
-  const customers = await prisma.customer.findMany({
-    where: { id: { in: topCustomerIds } },
-    select: { id: true, name: true, email: true },
-  }).catch(() => []);
+  const customers = await safeQuery(
+    () =>
+      prisma.customer.findMany({
+        where: { id: { in: topCustomerIds } },
+        select: { id: true, name: true, email: true },
+      }),
+    []
+  );
   const customerMap = Object.fromEntries(customers.map((c) => [c.id, c]));
   const topCustomers = topCustomerIds.map((id) => {
     const stats = customerTotals.get(id)!;

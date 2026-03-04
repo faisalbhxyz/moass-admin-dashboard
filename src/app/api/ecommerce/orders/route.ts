@@ -204,6 +204,8 @@ export async function POST(request: NextRequest) {
     }
 
     const order = await prisma.$transaction(async (tx) => {
+      // Numeric-only order numbers (e.g. "00001"). REGEXP prevents index use;
+      // fine for typical order volumes. For 10k+ orders, consider a sequence table.
       const nextRow = await tx.$queryRaw<[{ next: bigint }]>`
         SELECT COALESCE(MAX(CAST(orderNumber AS UNSIGNED)), 0) + 1 AS \`next\`
         FROM \`Order\`
