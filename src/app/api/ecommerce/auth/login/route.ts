@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
 import { createCustomerSession } from "@/lib/customer-auth";
 import { z } from "zod";
+import { withRateLimit, LIMITS } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -10,6 +11,8 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const rl = withRateLimit(request, LIMITS.CUSTOMER_LOGIN);
+  if (!rl.ok) return rl.response;
   try {
     const body = await request.json();
     const { email, password } = bodySchema.parse(body);
@@ -22,6 +25,10 @@ export async function POST(request: NextRequest) {
         { error: "ইমেইল বা পাসওয়ার্ড ভুল।" },
         { status: 401 }
       );
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: { lastLoginAt: new Date() },
+    });
     await createCustomerSession({ sub: customer.id, email: customer.email });
     return NextResponse.json({
       customer: {

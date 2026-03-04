@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { z } from "zod";
 import { Decimal } from "@prisma/client/runtime/library";
+import { withRateLimit, LIMITS } from "@/lib/rate-limit";
 
 const createOrderSchema = z.object({
   customer: z
@@ -31,6 +32,8 @@ const createOrderSchema = z.object({
  * Otherwise requires customer object in body (guest checkout).
  */
 export async function POST(request: NextRequest) {
+  const rl = withRateLimit(request, LIMITS.ORDER_PLACE);
+  if (!rl.ok) return rl.response;
   try {
     const body = await request.json();
     const data = createOrderSchema.parse(body);

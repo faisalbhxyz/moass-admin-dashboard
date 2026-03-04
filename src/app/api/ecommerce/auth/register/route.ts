@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { createCustomerSession } from "@/lib/customer-auth";
 import { z } from "zod";
+import { withRateLimit, LIMITS } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -11,6 +12,8 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const rl = withRateLimit(request, LIMITS.CUSTOMER_REGISTER);
+  if (!rl.ok) return rl.response;
   try {
     const body = await request.json();
     const { email, password, name } = bodySchema.parse(body);
