@@ -1,21 +1,21 @@
 #!/bin/bash
 # Hostinger-এ একবার চালান (প্রজেক্ট রুটে)
-# SSH: ssh -p 65002 u410218618@145.79.26.13
+# SSH: ssh -p 65002 YOUR_USER@YOUR_HOST
+#
+# SECURITY: Never put real DATABASE_URL or AUTH_SECRET in this file.
+# Create .env manually with: cp .env.example .env && nano .env
 
 set -e
 cd "$(dirname "$0")/.."
 echo "=== MOASS Admin – Full deploy on Hostinger ==="
 
-# .env তৈরি (নেই থাকলে)
 if [ ! -f .env ]; then
-  echo "Creating .env..."
-  cat > .env << 'ENVFILE'
-DATABASE_URL="mysql://u410218618_moass_db:Br46w7tru-UswLSpac0O@localhost:3306/moass_db"
-AUTH_SECRET="WmLaYYlJ0m40FImvtWM98SI+GR2j/gYCJh4KZ7lue5A="
-ENVFILE
-  echo ".env created."
-else
-  echo ".env exists, skipping."
+  echo "ERROR: .env not found. Create it from .env.example:"
+  echo "  cp .env.example .env"
+  echo "  nano .env   # Add your DATABASE_URL and AUTH_SECRET"
+  echo ""
+  echo "AUTH_SECRET: openssl rand -base64 32"
+  exit 1
 fi
 
 echo "1. npm install..."

@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const PUBLIC_PATHS = [
+  "/",
   "/auth/v2/login",
   "/auth/v2/register",
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/validate",
   "/api/upload",
+  "/api/debug-log",
 ];
 
 const CORS_PATHS = ["/api/ecommerce", "/api/image", "/api/banner-image"];
@@ -78,12 +80,23 @@ export function proxy(request: NextRequest) {
       return res;
     }
 
+    // Skip auth for Next.js static assets and internals (matcher may not exclude in all cases)
+    if (
+      pathname.startsWith("/_next/") ||
+      pathname.startsWith("/favicon") ||
+      pathname.startsWith("/api/")
+    )
+      return NextResponse.next();
+
     // Auth guard for dashboard pages
     if (isPublic(pathname)) return NextResponse.next();
 
     const token = request.cookies.get("ecomdash_session")?.value;
     if (!token) {
-      const login = new URL("/auth/v2/login", request.url);
+      // #region agent log
+      fetch("http://127.0.0.1:7547/ingest/99499ef2-17dc-45b2-bd71-46407300a8b4",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"91330f"},body:JSON.stringify({sessionId:"91330f",location:"proxy:no token",message:"redirect to login no cookie",data:{pathname},timestamp:Date.now(),hypothesisId:"E"})}).catch(()=>{});
+      // #endregion
+      const login = new URL("/", request.url);
       login.searchParams.set("from", pathname);
       return NextResponse.redirect(login);
     }

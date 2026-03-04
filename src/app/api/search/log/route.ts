@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentCustomer } from "@/lib/customer-auth";
+import { withRateLimit, LIMITS } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const bodySchema = z.object({ query: z.string().min(1).max(500) });
@@ -13,9 +14,11 @@ function getClientIp(request: NextRequest): string | null {
 
 /**
  * POST /api/search/log – log a search (every time user submits).
- * Always writes to search_logs. If logged in, upserts user_search_history.
+ * Rate limited to prevent search_logs table DoS.
  */
 export async function POST(request: NextRequest) {
+  const rl = withRateLimit(request, LIMITS.SEARCH_LOG);
+  if (!rl.ok) return rl.response;
   try {
     const body = await request.json();
     const { query } = bodySchema.parse(body);

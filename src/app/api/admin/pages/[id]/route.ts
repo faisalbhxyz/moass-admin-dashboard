@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/api-auth";
+import { sanitizeHtmlContent } from "@/lib/sanitize-html";
 import { z } from "zod";
 
 export async function GET(
@@ -39,9 +40,13 @@ export async function PATCH(
     );
   }
   try {
+    const data = { ...parsed.data };
+    if (data.content !== undefined) {
+      data.content = sanitizeHtmlContent(data.content);
+    }
     const page = await prisma.contentPage.update({
       where: { id },
-      data: parsed.data,
+      data,
     });
     return NextResponse.json(page);
   } catch (err) {

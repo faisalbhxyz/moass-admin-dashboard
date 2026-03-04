@@ -2,6 +2,11 @@
  * In-memory rate limiter (per IP).
  * Protects against brute-force (login) and fraud orders.
  * Per IP: limits apply per visitor; whole site not limited.
+ *
+ * SECURITY: IP is taken from x-forwarded-for / x-real-ip. Ensure your reverse proxy
+ * (Nginx, Cloudflare, Vercel) overwrites these with the real client IP; otherwise
+ * attackers could spoof headers to bypass rate limits. Vercel and Cloudflare set
+ * them correctly by default.
  */
 
 type Entry = { count: number; resetAt: number };
@@ -62,6 +67,10 @@ export const LIMITS = {
   CUSTOMER_REGISTER: 2,
   /** Order placement – fraud protection (real user rarely places 3 orders/min) */
   ORDER_PLACE: 3,
+  /** Order track – limit enumeration attempts */
+  ORDER_TRACK: 10,
+  /** Search log – prevent search_logs table DoS */
+  SEARCH_LOG: 60,
 } as const;
 
 export function withRateLimit(

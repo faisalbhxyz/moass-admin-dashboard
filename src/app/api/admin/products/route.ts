@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/api-auth";
 import { getUncategorizedCategoryId } from "@/lib/product-data";
+import { sanitizeHtmlContent } from "@/lib/sanitize-html";
 import { z } from "zod";
 
 export async function GET(request: NextRequest) {
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     data: {
       name: data.name,
       slug: data.slug,
-      description: data.description ?? null,
+      description: data.description ? sanitizeHtmlContent(data.description) : null,
       price: data.price,
       compareAt: data.compareAt ?? null,
       images: data.images ?? null,

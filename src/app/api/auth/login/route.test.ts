@@ -31,7 +31,7 @@ describe("POST /api/auth/login", () => {
     const request = new NextRequest("http://localhost/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email: "invalid", password: "pass123" }),
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "127.0.0.1" },
     });
 
     const response = await POST(request);
@@ -56,7 +56,7 @@ describe("POST /api/auth/login", () => {
     const request = new NextRequest("http://localhost/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email: "admin@test.com", password: "wrongpass" }),
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "127.0.0.2" },
     });
 
     const response = await POST(request);
@@ -72,7 +72,7 @@ describe("POST /api/auth/login", () => {
     const request = new NextRequest("http://localhost/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email: "nonexistent@test.com", password: "pass" }),
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "127.0.0.3" },
     });
 
     const response = await POST(request);
@@ -96,7 +96,7 @@ describe("POST /api/auth/login", () => {
     const request = new NextRequest("http://localhost/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email: "admin@test.com", password: "correct" }),
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "127.0.0.4" },
     });
 
     const response = await POST(request);

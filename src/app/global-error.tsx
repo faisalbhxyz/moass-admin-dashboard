@@ -51,7 +51,7 @@ export default function GlobalError({
               Try again
             </button>
             <a
-              href="/auth/v2/login"
+              href="/"
               style={{
                 padding: "10px 16px",
                 fontSize: 14,

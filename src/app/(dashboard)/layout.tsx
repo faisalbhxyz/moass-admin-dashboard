@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { LoginForm } from "@/components/LoginForm";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { unstable_cache } from "next/cache";
@@ -16,13 +17,17 @@ function isNextRedirect(err: unknown): boolean {
 
 const getLowStockCount = unstable_cache(
   async () => {
-    const setting = await prisma.setting
-      .findUnique({ where: { key: "low_stock_threshold" } })
-      .catch(() => null);
-    const threshold = parseInt(setting?.value ?? "5", 10);
-    return prisma.product
-      .count({ where: { stock: { lte: threshold }, published: true } })
-      .catch(() => 0);
+    try {
+      const setting = await prisma.setting
+        .findUnique({ where: { key: "low_stock_threshold" } })
+        .catch(() => null);
+      const threshold = parseInt(setting?.value ?? "5", 10);
+      return await prisma.product
+        .count({ where: { stock: { lte: threshold }, published: true } })
+        .catch(() => 0);
+    } catch {
+      return 0;
+    }
   },
   ["dashboard-low-stock-count"],
   { revalidate: 30 }
@@ -36,7 +41,10 @@ export default async function DashboardLayout({
       getCurrentUser(),
       getLowStockCount(),
     ]);
-    if (!user) redirect("/auth/v2/login");
+    // #region agent log
+    fetch("http://127.0.0.1:7547/ingest/99499ef2-17dc-45b2-bd71-46407300a8b4",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"91330f"},body:JSON.stringify({sessionId:"91330f",location:"dashboard/layout:getCurrentUser",message:"user check",data:{hasUser:!!user},timestamp:Date.now(),hypothesisId:"B"})}).catch(()=>{});
+    // #endregion
+    if (!user) return <LoginForm />;
     return (
       <QueryProvider>
         <div className="flex h-screen overflow-hidden bg-[#F9F9F9]">
@@ -50,6 +58,6 @@ export default async function DashboardLayout({
   } catch (err) {
     if (isNextRedirect(err)) throw err;
     console.error("Dashboard layout error:", err);
-    redirect("/auth/v2/login?error=session");
+    redirect("/?error=session");
   }
 }

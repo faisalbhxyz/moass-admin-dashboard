@@ -79,3 +79,9 @@ pm2 start npm --name "moass-admin" -- start
 | অ্যাকাউন্ট   | `/account` |
 
 API: `/api/auth/*`, `/api/admin/*`, `/api/ecommerce/*`, `/api/upload` – সব অ্যাডমিন API সেশন চেক দ্বারা প্রটেক্টেড।
+
+## ট্রাবলশুটিং
+
+### লগইন ফর্ম আনস্টাইলেড দেখাচ্ছে
+
+Tailwind v4-তে `src/app/globals.css` এর `@source` ডাইরেক্টিভস **রিমুভ করবেন না**। এগুলো না থাকলে `/auth/v2/login` ও অন্যান্য রাউটে Tailwind ক্লাস সঠিকভাবে কাজ করবে না। নতুন ফোল্ডার (যেমন `src/lib/`) যোগ করলে সেই পাথও `@source` এ অ্যাড করুন।

@@ -531,10 +531,10 @@ const result = await apiPost("/api/ecommerce/coupons/validate", {
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `customer` | object | Yes | কাস্টমার তথ্য |
-| `customer.email` | string | Yes | ইমেইল (বাধ্যতামূলক) |
+| `customer` | object | Yes (গেস্টের জন্য) | কাস্টমার তথ্য |
+| `customer.phone` | string | Yes (গেস্ট) | ফোন নম্বর (বাধ্যতামূলক) |
+| `customer.email` | string | No | ইমেইল (ঐচ্ছিক) |
 | `customer.name` | string | No | নাম |
-| `customer.phone` | string | No | ফোন |
 | `customer.address` | string | No | ঠিকানা |
 | `items` | array | Yes | অর্ডার আইটেম; কমপক্ষে ১টি |
 | `items[].productId` | string | Yes | প্রোডাক্ট id (প্রোডাক্ট লিস্ট/ডিটেইল থেকে যে `id`) |
@@ -647,17 +647,17 @@ console.log("Order placed:", order.orderNumber);
 
 ### অর্ডার ট্র্যাক (পাবলিক)
 
-হেডার থেকে "Order Tracking" এ কাস্টমার অর্ডার নম্বর দিয়ে স্ট্যাটাস দেখতে পারে; **লগইন লাগে না**।
+হেডার থেকে "Order Tracking" এ কাস্টমার অর্ডার নম্বর ও ইমেইল/ফোন দিয়ে স্ট্যাটাস দেখতে পারে; **লগইন লাগে না**।
 
 | বিষয় | মান |
 |-------|-----|
 | **Method** | `GET` |
 | **Path** | `/api/ecommerce/orders/track` |
-| **Query** | `orderNumber` (required) — অর্ডার নম্বর (যেমন `00001`) |
-| **Auth** | নেই (পাবলিক) |
+| **Query** | `orderNumber` (required) — অর্ডার নম্বর; `email` (optional) অথবা `phone` (optional) — যেকোনো একটি প্রয়োজন (অর্ডারের সাথে মিলতে হবে) |
+| **Auth** | নেই (পাবলিক, তবে orderNumber + email/phone মিলতে হবে) |
 
-- মিলে গেলে অর্ডার প্লেস রেসপন্সের মতোই একটি অর্ডার অবজেক্ট (id, orderNumber, status, customer, items, product ইত্যাদি) রিটার্ন হয়।
-- না মিললে `404` ও `{ "error": "Order not found" }`।
+- ইমেইল দিয়ে অর্ডার করলে `email` দিয়ে ভেরিফাই করুন। শুধু ফোন দিয়ে করলে `phone` দিয়ে ভেরিফাই করুন।
+- মিলে গেলে অর্ডার অবজেক্ট রিটার্ন হয়। না মিললে `404`।
 
 ---
 
@@ -844,7 +844,7 @@ console.log("Order placed:", order.orderNumber);
 | পেমেন্ট মেথড | GET | `/api/ecommerce/payment-methods` |
 | কুপন ভ্যালিডেট | POST | `/api/ecommerce/coupons/validate` |
 | অর্ডার প্লেস | POST | `/api/ecommerce/orders` |
-| অর্ডার ট্র্যাক (পাবলিক) | GET | `/api/ecommerce/orders/track?orderNumber=XXX` |
+| অর্ডার ট্র্যাক (পাবলিক) | GET | `/api/ecommerce/orders/track?orderNumber=XXX&email=YYY` অথবা `&phone=ZZZ` |
 | পেজ লিস্ট (পলিসি/টার্মস ইত্যাদি) | GET | `/api/ecommerce/pages` |
 | সিঙ্গেল পেজ (HTML কন্টেন্ট) | GET | `/api/ecommerce/pages/[slug]` |
 | পাবলিক সেটিংস | GET | `/api/ecommerce/settings` |

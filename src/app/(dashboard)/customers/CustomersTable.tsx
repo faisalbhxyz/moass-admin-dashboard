@@ -79,14 +79,14 @@ export function CustomersTable({
             <tbody>
               {customers.map((c) => (
                 <tr key={c.id} className="group border-b border-gray-100 transition-colors duration-150 hover:bg-gray-50">
-                  <td className="h-12 px-4 text-gray-900">{c.email}</td>
+                  <td className="h-12 px-4 text-gray-900">{c.email ?? c.phone ?? "—"}</td>
                   <td className="h-12 px-4 text-gray-700">{c.name ?? "—"}</td>
                   <td className="h-12 px-4 text-gray-700">{c.phone ?? "—"}</td>
                   <td className="h-12 px-4 text-gray-600">
                     {c.lastLoginAt ? format(new Date(c.lastLoginAt), "MMM d, yyyy · h:mm a") : "—"}
                   </td>
                   <td className="h-12 px-2 text-right">
-                    <CustomerActions id={c.id} email={c.email} />
+                    <CustomerActions id={c.id} email={c.email ?? c.phone ?? ""} />
                   </td>
                 </tr>
               ))}

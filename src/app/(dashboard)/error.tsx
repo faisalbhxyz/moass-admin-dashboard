@@ -29,7 +29,7 @@ export default function DashboardError({
           Try again
         </button>
         <Link
-          href="/auth/v2/login"
+          href="/"
           className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           Go to login

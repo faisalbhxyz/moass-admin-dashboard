@@ -39,6 +39,24 @@ export async function createSession(payload: { sub: string; email: string }) {
   });
 }
 
+/** Create session token (for explicit Set-Cookie in API routes). */
+export async function createSessionToken(payload: {
+  sub: string;
+  email: string;
+}): Promise<string> {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${DEFAULT_MAX_AGE}s`)
+    .sign(getSecret());
+}
+
+/** Build Set-Cookie header value for session. */
+export function sessionCookieHeader(token: string): string {
+  const secure = process.env.NODE_ENV === "production";
+  return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${DEFAULT_MAX_AGE}${secure ? "; Secure" : ""}`;
+}
+
 export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);

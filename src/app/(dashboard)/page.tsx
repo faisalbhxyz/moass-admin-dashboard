@@ -28,15 +28,25 @@ async function safeQuery<T>(
   }
 }
 
+function isNextRedirect(err: unknown): boolean {
+  return !!(
+    err &&
+    typeof err === "object" &&
+    "digest" in err &&
+    String((err as { digest?: string }).digest).startsWith("NEXT_")
+  );
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
   searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/auth/v2/login");
+  try {
+    const user = await getCurrentUser();
+    if (!user) redirect("/auth/v2/login");
 
-  const params = await searchParams;
+    const params = await searchParams;
   const dateRange = getDateRangeFromSearch(params);
   const dateLabel = formatDateRangeLabel(dateRange);
   const { from, to } = dateRange;
@@ -282,4 +292,9 @@ export default async function DashboardPage({
       </div>
     </div>
   );
+  } catch (err) {
+    if (isNextRedirect(err)) throw err;
+    console.error("[Dashboard] page error:", err);
+    redirect("/auth/v2/login?error=session");
+  }
 }

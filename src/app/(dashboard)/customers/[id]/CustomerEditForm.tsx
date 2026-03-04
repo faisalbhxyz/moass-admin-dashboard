@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 
-type Customer = { id: string; email: string; name: string | null; phone: string | null; address: string | null };
+type Customer = { id: string; email: string | null; name: string | null; phone: string | null; address: string | null };
 
 export function CustomerEditForm({ customer }: { customer: Customer }) {
   const router = useRouter();
@@ -33,7 +33,7 @@ export function CustomerEditForm({ customer }: { customer: Customer }) {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-4">
-      <p className="w-full text-sm text-gray-500">{customer.email}</p>
+      <p className="w-full text-sm text-gray-500">{customer.email ?? customer.phone ?? "—"}</p>
       <div className="min-w-[160px]">
         <label className={labelClass}>Name</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />

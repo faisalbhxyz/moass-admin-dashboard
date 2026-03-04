@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/api-auth";
+import { sanitizeHtmlContent } from "@/lib/sanitize-html";
 import { z } from "zod";
 
 export async function GET() {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
       data: {
         slug: parsed.data.slug,
         title: parsed.data.title,
-        content: parsed.data.content,
+        content: sanitizeHtmlContent(parsed.data.content),
         sortOrder: parsed.data.sortOrder ?? 0,
       },
     });

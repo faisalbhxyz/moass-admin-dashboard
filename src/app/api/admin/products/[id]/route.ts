@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/api-auth";
 import { getUncategorizedCategoryId } from "@/lib/product-data";
+import { sanitizeHtmlContent } from "@/lib/sanitize-html";
 import { z } from "zod";
 
 export async function GET(
@@ -46,7 +47,7 @@ export async function PATCH(
   const updateData: Record<string, unknown> = {};
   if (data.name !== undefined) updateData.name = data.name;
   if (data.slug !== undefined) updateData.slug = data.slug;
-  if (data.description !== undefined) updateData.description = data.description;
+  if (data.description !== undefined) updateData.description = data.description ? sanitizeHtmlContent(data.description) : data.description;
   if (data.price !== undefined) updateData.price = data.price;
   if (data.compareAt !== undefined) updateData.compareAt = data.compareAt;
   if (data.images !== undefined) updateData.images = data.images;

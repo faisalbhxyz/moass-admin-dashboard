@@ -8,9 +8,9 @@ import { withRateLimit, LIMITS } from "@/lib/rate-limit";
 const createOrderSchema = z.object({
   customer: z
     .object({
-      email: z.string().email(),
+      email: z.string().email().optional(),
       name: z.string().optional(),
-      phone: z.string().optional(),
+      phone: z.string().min(1, "ফোন নম্বর দিন"),
       address: z.string().optional(),
     })
     .optional(),
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const loggedIn = await getCurrentCustomer();
     let customerPayload: { email: string; name?: string; phone?: string; address?: string };
     let customerId: string | null = null;
-    let customer: { id: string; email: string; name: string | null; phone: string | null; address: string | null };
+    let customer: { id: string; email: string | null; name: string | null; phone: string | null; address: string | null };
 
     if (loggedIn) {
       customerPayload = {
@@ -95,12 +95,17 @@ export async function POST(request: NextRequest) {
         },
       });
     } else {
-      if (!data.customer?.email)
+      if (!data.customer?.phone?.trim())
         return NextResponse.json(
-          { error: "লগইন করুন অথবা ইমেইল ও ঠিকানা দিন।" },
+          { error: "লগইন করুন অথবা ফোন নম্বর ও ঠিকানা দিন।" },
           { status: 400 }
         );
-      customerPayload = data.customer;
+      customerPayload = {
+        email: data.customer.email?.trim() || "",
+        name: data.customer.name ?? undefined,
+        phone: data.customer.phone?.trim() ?? undefined,
+        address: data.customer.address ?? undefined,
+      };
     }
 
     const productIds = [...new Set(data.items.map((i) => i.productId))];
@@ -176,24 +181,38 @@ export async function POST(request: NextRequest) {
     const total = Math.max(0, subtotal - discount + shippingCost + tax);
 
     if (!loggedIn) {
-      const normalizedEmail = customerPayload.email.trim().toLowerCase();
-      let guestCustomer = await prisma.customer.findUnique({
-        where: { email: normalizedEmail },
-      });
-      if (guestCustomer) {
-        customerId = guestCustomer.id;
-        await prisma.customer.update({
-          where: { id: guestCustomer.id },
-          data: {
-            name: customerPayload.name ?? guestCustomer.name,
-            phone: customerPayload.phone ?? guestCustomer.phone,
-            address: customerPayload.address ?? guestCustomer.address,
-          },
+      const hasEmail = !!customerPayload.email?.trim();
+      const normalizedEmail = customerPayload.email?.trim()?.toLowerCase() ?? null;
+
+      if (hasEmail && normalizedEmail) {
+        let guestCustomer = await prisma.customer.findUnique({
+          where: { email: normalizedEmail },
         });
+        if (guestCustomer) {
+          customerId = guestCustomer.id;
+          await prisma.customer.update({
+            where: { id: guestCustomer.id },
+            data: {
+              name: customerPayload.name ?? guestCustomer.name,
+              phone: customerPayload.phone ?? guestCustomer.phone,
+              address: customerPayload.address ?? guestCustomer.address,
+            },
+          });
+        } else {
+          guestCustomer = await prisma.customer.create({
+            data: {
+              email: normalizedEmail,
+              name: customerPayload.name ?? null,
+              phone: customerPayload.phone ?? null,
+              address: customerPayload.address ?? null,
+            },
+          });
+          customerId = guestCustomer.id;
+        }
       } else {
-        guestCustomer = await prisma.customer.create({
+        const guestCustomer = await prisma.customer.create({
           data: {
-            email: normalizedEmail,
+            email: null,
             name: customerPayload.name ?? null,
             phone: customerPayload.phone ?? null,
             address: customerPayload.address ?? null,

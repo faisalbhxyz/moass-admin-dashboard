@@ -152,9 +152,9 @@ export function TransactionsTable({
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-gray-900">{t.customer?.name ?? t.customer?.email ?? "Guest"}</p>
-                      {t.customer?.email && t.customer?.name && (
-                        <p className="text-xs text-gray-500">{t.customer.email}</p>
+                      <p className="text-gray-900">{t.customer?.name ?? t.customer?.email ?? t.customer?.phone ?? "Guest"}</p>
+                      {((t.customer?.email || t.customer?.phone) && t.customer?.name) && (
+                        <p className="text-xs text-gray-500">{t.customer.email ?? t.customer.phone}</p>
                       )}
                     </td>
                     <td className="px-4 py-3">

@@ -21,7 +21,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
       <TopBar
         breadcrumbs={[
           { label: "Customers", href: "/customers" },
-          { label: customer.name ?? customer.email },
+          { label: customer.name ?? customer.email ?? customer.phone ?? "Customer" },
         ]}
       />
       <div className="p-6">

@@ -85,7 +85,7 @@ model StoredImage {
 
 model Customer {
   id          String    @id @default(cuid())
-  email       String    @unique
+  email       String?   @unique  // Optional for guest checkout (phone required)
   password    String?
   name        String?
   phone       String?

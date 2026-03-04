@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/Button";
 import { Type, Code } from "lucide-react";
 import { useSavePageMutation } from "./hooks/use-pages";
@@ -226,7 +227,12 @@ export function PageForm({ initial }: Props) {
                 <p className="text-xs text-gray-500">Preview (same as storefront):</p>
                 <div
                   className="min-h-[120px] rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-700 prose prose-sm max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0"
-                  dangerouslySetInnerHTML={{ __html: content || "<p class='text-gray-400'>Nothing to preview.</p>" }}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(content || "<p class='text-gray-400'>Nothing to preview.</p>", {
+                      ALLOWED_TAGS: ["p", "br", "strong", "em", "u", "h1", "h2", "h3", "ul", "ol", "li", "a", "span", "div", "blockquote"],
+                      ALLOWED_ATTR: ["href", "class", "target", "rel"],
+                    }),
+                  }}
                 />
               </div>
             )}

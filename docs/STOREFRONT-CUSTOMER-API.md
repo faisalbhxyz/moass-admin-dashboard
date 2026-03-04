@@ -166,7 +166,7 @@ async function api(path: string, options: RequestInit = {}) {
 `POST /api/ecommerce/orders` (মেইন স্টোরফ্রন্ট API ডকে বিস্তারিত আছে)।
 
 - **লগইন কাস্টমার:** বডিতে `customer` পাঠানোর দরকার নেই। সেভ করা নাম/ফোন/ঠিকানা অটো ব্যবহার হবে। চেকআউটে আগে `GET /api/ecommerce/auth/me` দিয়ে ঠিকানা নিয়ে ফর্ম প্রি-ফিল করুন।
-- **গেস্ট:** বডিতে `customer: { email, name?, phone?, address? }` দিন।
+- **গেস্ট:** বডিতে `customer: { phone, email?, name?, address? }` দিন। ফোন বাধ্যতামূলক; ইমেইল ঐচ্ছিক।
 
 লগইন থাকলে অর্ডার সফল হলে **পয়েন্ট** যোগ হয় (প্রতি ১০০ টাকায় ১ পয়েন্ট)।
 

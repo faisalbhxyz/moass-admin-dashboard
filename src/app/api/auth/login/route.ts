@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { verifyPassword, createSession } from "@/lib/auth";
+import { verifyPassword, createSessionToken, sessionCookieHeader } from "@/lib/auth";
 import { z } from "zod";
 import { withRateLimit, LIMITS } from "@/lib/rate-limit";
 
@@ -13,12 +13,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, password } = bodySchema.parse(body);
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !(await verifyPassword(password, user.password)))
+    if (!user || !(await verifyPassword(password, user.password))) {
+      // #region agent log
+      fetch("http://127.0.0.1:7547/ingest/99499ef2-17dc-45b2-bd71-46407300a8b4",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"91330f"},body:JSON.stringify({sessionId:"91330f",location:"api/auth/login:401",message:"login failed invalid creds",data:{},timestamp:Date.now(),hypothesisId:"A"})}).catch(()=>{});
+      // #endregion
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
-    await createSession({ sub: user.id, email: user.email });
-    return NextResponse.json({
+    }
+    const token = await createSessionToken({ sub: user.id, email: user.email });
+    const response = NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
     });
+    response.headers.set("Set-Cookie", sessionCookieHeader(token));
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    // #region agent log
+    fetch("http://127.0.0.1:7547/ingest/99499ef2-17dc-45b2-bd71-46407300a8b4",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"91330f"},body:JSON.stringify({sessionId:"91330f",location:"api/auth/login:200",message:"login success cookie set",data:{userId:user.id},timestamp:Date.now(),hypothesisId:"B"})}).catch(()=>{});
+    // #endregion
+    return response;
   } catch (e) {
     if (e instanceof z.ZodError)
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });

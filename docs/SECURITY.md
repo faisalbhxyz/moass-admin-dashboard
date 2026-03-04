@@ -50,7 +50,7 @@
 | `/api/auth/logout` | POST | না | সেশন কুকি ডিলিট করে |
 | `/api/auth/me` | GET | হ্যাঁ (`requireUser`) | বর্তমান লগড-ইন ইউজার রিটার্ন করে |
 | `/api/auth/password` | POST | হ্যাঁ (`requireUser`) | পাসওয়ার্ড চেঞ্জ |
-| `/api/upload` | POST | হ্যাঁ (`requireUser`) | ফাইল আপলোড (অ্যাডমিন) |
+| `/api/upload` | POST | হ্যাঁ (`requireUser`) | ফাইল আপলোড (অ্যাডমিন); ১০MB লিমিট, শুধু ছবি, magic-bytes ভ্যালিডেশন |
 
 ### লগইন রিকোয়েস্ট উদাহরণ
 
@@ -132,12 +132,40 @@ Content-Type: application/json
 | `/api/ecommerce/auth/login` | ৩ | ব্রুট ফোর্স প্রটেকশন |
 | `/api/ecommerce/auth/register` | ২ | স্প্যাম অ্যাকাউন্ট ঠেকানো |
 | `POST /api/ecommerce/orders` | ৩ | ফ্রড অর্ডার প্রটেকশন |
+| `GET /api/ecommerce/orders/track` | ১০ | অর্ডার ট্র্যাক – enumeration ঠেকানো |
+| `POST /api/search/log` | ৬০ | সার্চ লগ – টেবিল DoS ঠেকানো |
 
 লিমিট অতিক্রম করলে 429 + `{ "error": "বহুবার চেষ্টা করা হয়েছে। কয়েক মিনিট পরে আবার চেষ্টা করুন।" }`। ইন-মেমরি স্টোর; প্রোডে ভারী ট্রাফিকে Upstash Redis যোগ করা যেতে পারে।
 
+**রেট লিমিট IP সোর্স:** `x-forwarded-for` / `x-real-ip` হেডার থেকে IP নেওয়া হয়। প্রোডে reverse proxy (Nginx, Cloudflare, Vercel) নিশ্চিত করুন যে real client IP সেট করে; না হলে আক্রমণকারী fake header দিয়ে লিমিট বাইপাস করতে পারে। Vercel/Cloudflare ডিফল্টে সঠিকভাবে সেট করে।
+
 ---
 
-## ৮. যা এখন নেই (পরবর্তীতে যোগ করা যেতে পারে)
+## ৭.১. ফাইল আপলোড সিকিউরিটি
+
+- **সাইজ লিমিট:** সর্বোচ্চ ১০MB  
+- **অনুমোদিত ফরম্যাট:** JPEG, PNG, WebP, GIF  
+- **ভ্যালিডেশন:** Magic bytes (ফাইলের প্রকৃত কন্টেন্ট) দিয়ে চেক করা হয়; শুধু `Content-Type` হেডারে নির্ভর করা হয় না।
+
+---
+
+## ৭.২. XSS প্রটেকশন
+
+- অ্যাডমিন পেজ এডিটরের প্রিভিউতে `DOMPurify` দিয়ে HTML sanitize করা হয়।  
+- **সার্ভার-সাইড:** Page ও Product content সংরক্ষণের সময় `sanitize-html` দিয়ে sanitize করা হয় (`src/lib/sanitize-html.ts`)।  
+- স্টোরফ্রন্টে page content দেখানোর সময়ও HTML sanitize করার পরামর্শ দেওয়া হয় (স্টোরফ্রন্ট কোডে)।
+
+---
+
+## ৮. ক্রেডেনশিয়াল সিকিউরিটি
+
+- **কখনোই** `DATABASE_URL` বা `AUTH_SECRET` স্ক্রিপ্টে (যেমন `deploy-remote-full.sh`) হার্ডকোড করবেন না।  
+- `.env` ফাইল `.gitignore` এ আছে; `.env.example` শুধু টেমপ্লেট।  
+- Deploy স্ক্রিপ্ট `.env` না থাকলে exit করবে এবং ব্যবহারকারীকে ম্যানুয়ালি তৈরি করতে বলবে।
+
+---
+
+## ৯. যা এখন নেই (পরবর্তীতে যোগ করা যেতে পারে)
 
 - **স্টোরফ্রন্ট API কী:** স্টোরফ্রন্ট থেকে অর্ডার/প্রোডাক্ট API কল করতে আলাদা API কী লাগে না।  
 - **গ্লোবাল মিডলওয়্যার:** Next.js `middleware.ts` দিয়ে অ্যাডমিন রাউট ব্লক করা হয় না; প্রতিটি রাউট নিজে `requireUser()` ব্যবহার করে।  

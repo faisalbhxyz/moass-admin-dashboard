@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Tailwind v4: Scan all source files for utility classes */
+@source "../**/*.{js,ts,jsx,tsx}";
+/* Explicit login path (from project root) – ensures auth routes are styled */
+@source "src/app/auth/v2/login/page.tsx";
+/* Safelist: login form classes always generated (backup if scanning fails) */
+@source inline(
+  "flex min-h-screen items-center justify-center px-4 rounded-lg border bg-white p-6 text-sm font-medium tracking-tight mt-1 mt-6 space-y-4 rounded-md px-3 py-2 text-xs mb-1 block h-9 w-full border-gray-200 border-gray-300 border-amber-200 border-red-200 bg-[#F9F9F9] bg-amber-50 bg-red-50 bg-gray-900 text-gray-900 text-gray-500 text-gray-700 text-amber-800 text-red-600 text-white placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 py-1.5 transition-colors duration-150 hover:bg-gray-700 disabled:opacity-50 max-w-sm"
+);
+
 /* Design system: Modern Admin (SadaxCart-style) */
 :root {
   --background: #F9F9F9;

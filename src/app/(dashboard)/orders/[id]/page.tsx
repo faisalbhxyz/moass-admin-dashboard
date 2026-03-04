@@ -113,9 +113,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <div className="text-sm font-medium text-gray-900">Customer</div>
               </div>
               <div className="px-6 py-4 text-sm text-gray-700">
-                <p className="font-medium text-gray-900">{order.customer?.name ?? order.customer?.email ?? "—"}</p>
-                {order.customer?.email && (
-                  <p className="mt-1 text-gray-600">{order.customer.email}</p>
+                <p className="font-medium text-gray-900">{order.customer?.name ?? order.customer?.email ?? order.customer?.phone ?? "—"}</p>
+                {(order.customer?.email || order.customer?.phone) && (
+                  <p className="mt-1 text-gray-600">{order.customer.email ?? order.customer.phone}</p>
                 )}
               </div>
             </div>
