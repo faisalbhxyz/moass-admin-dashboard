@@ -194,7 +194,14 @@ export function OrdersTable({
                 const productName = o.items[0]?.product?.name ?? "—";
                 const { label, variant } = statusDisplay(o.status);
                 return (
-                  <tr key={o.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50/50">
+                  <tr
+                    key={o.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => router.push(`/orders/${o.id}`)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/orders/${o.id}`); } }}
+                    className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50/50"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100">
@@ -232,7 +239,7 @@ export function OrdersTable({
                     <td className="px-4 py-3">
                       <Badge variant={variant}>{label}</Badge>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           href={`/orders/${o.id}`}
