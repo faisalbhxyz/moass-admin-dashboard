@@ -47,8 +47,8 @@ function LogoutButton() {
 // Logical order: Dashboard → Orders → Transactions → Products → Categories → Inventory → Customers → Coupons → Banners → Homepage Sections → Menus → Pages → Shipping → Payment Methods → Reports → Settings
 const mainNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/transactions", label: "Transactions", icon: Receipt },
+  { href: "/orders", label: "Orders", icon: ShoppingCart, badgeKey: "newOrders" },
+  { href: "/transactions", label: "Transactions", icon: Receipt, badgeKey: "pendingTransactions" },
   { href: "/products", label: "Products", icon: Package },
   { href: "/categories", label: "Categories", icon: FolderTree },
   { href: "/inventory", label: "Inventory", icon: Warehouse, badgeKey: "lowStock" },
@@ -68,9 +68,13 @@ const mainNav = [
 export function Sidebar({
   userName,
   lowStockCount = 0,
+  newOrdersCount = 0,
+  pendingTransactionsCount = 0,
 }: {
   userName?: string | null;
   lowStockCount?: number;
+  newOrdersCount?: number;
+  pendingTransactionsCount?: number;
 }) {
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,7 +117,15 @@ export function Sidebar({
         {filteredNav.map(({ href, label, icon: Icon, badgeKey }) => {
           const active =
             pathname === href || (href !== "/" && pathname.startsWith(href + "/"));
-          const showBadge = badgeKey === "lowStock" && lowStockCount > 0;
+          const badgeCount =
+            badgeKey === "lowStock"
+              ? lowStockCount
+              : badgeKey === "newOrders"
+                ? newOrdersCount
+                : badgeKey === "pendingTransactions"
+                  ? pendingTransactionsCount
+                  : 0;
+          const showBadge = badgeCount > 0 && !active;
           return (
             <Link
               key={href}
@@ -128,7 +140,7 @@ export function Sidebar({
               <span className="flex-1">{label}</span>
               {showBadge && (
                 <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-600">
-                  {lowStockCount}
+                  {badgeCount}
                 </span>
               )}
             </Link>
