@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         },
       });
     }
-    await createCustomerSession({ sub: customer.id, email: customer.email });
+    await createCustomerSession({ sub: customer.id, email: customer.email ?? normalizedEmail });
     return NextResponse.json({
       customer: {
         id: customer.id,

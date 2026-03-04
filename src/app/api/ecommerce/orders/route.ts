@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const loggedIn = await getCurrentCustomer();
-    let customerPayload: { email: string; name?: string; phone?: string; address?: string };
+    let customerPayload: { email: string | null; name?: string; phone?: string; address?: string };
     let customerId: string | null = null;
     let customer: { id: string; email: string | null; name: string | null; phone: string | null; address: string | null };
 

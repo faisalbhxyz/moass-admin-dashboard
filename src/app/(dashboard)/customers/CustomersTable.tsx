@@ -9,7 +9,7 @@ import { CustomerActions } from "./CustomerActions";
 
 type Customer = {
   id: string;
-  email: string;
+  email: string | null;
   name: string | null;
   phone: string | null;
   lastLoginAt: Date | string | null;

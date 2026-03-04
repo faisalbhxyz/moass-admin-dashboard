@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       where: { id: customer.id },
       data: { lastLoginAt: new Date() },
     });
-    await createCustomerSession({ sub: customer.id, email: customer.email });
+    await createCustomerSession({ sub: customer.id, email: customer.email ?? normalizedEmail });
     return NextResponse.json({
       customer: {
         id: customer.id,

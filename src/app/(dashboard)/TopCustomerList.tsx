@@ -4,7 +4,7 @@ export function TopCustomerList({
   customers,
   dateLabel,
 }: {
-  customers: { id: string; name: string | null; email: string; totalSpent: number; orderCount: number }[];
+  customers: { id: string; name: string | null; email: string | null; totalSpent: number; orderCount: number }[];
   dateLabel: string;
 }) {
   return (
@@ -23,10 +23,10 @@ export function TopCustomerList({
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-600">
-                    {(c.name ?? c.email).charAt(0).toUpperCase()}
+                    {(c.name ?? c.email ?? "?").charAt(0).toUpperCase()}
                   </span>
                   <div>
-                    <p className="font-medium text-gray-900">{c.name || c.email}</p>
+                    <p className="font-medium text-gray-900">{c.name || c.email || "—"}</p>
                     <p className="text-xs text-gray-500">{c.orderCount} orders</p>
                   </div>
                 </div>

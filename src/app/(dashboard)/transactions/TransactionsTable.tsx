@@ -16,7 +16,7 @@ type Transaction = {
   senderNumber: string | null;
   total: { toString(): string };
   createdAt: Date;
-  customer: { name: string | null; email: string } | null;
+  customer: { name: string | null; email: string | null; phone: string | null } | null;
   paymentMethod: { name: string; type: string } | null;
   items: { product: { name: string } }[];
 };

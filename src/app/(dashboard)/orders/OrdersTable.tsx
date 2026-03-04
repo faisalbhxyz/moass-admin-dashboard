@@ -32,7 +32,7 @@ type Order = {
   status: string;
   total: { toString(): string };
   createdAt: Date;
-  customer: { name: string | null; email: string } | null;
+  customer: { name: string | null; email: string | null } | null;
   items: { product: { name: string; images: string | null } }[];
 };
 
