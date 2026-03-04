@@ -30,6 +30,11 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
             <div className="rounded-lg border border-gray-200 bg-white">
               <div className="border-b border-gray-200 px-6 py-4">
                 <div className="text-sm font-medium text-gray-900">Customer</div>
+                {customer.lastLoginAt != null && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Last login: {format(customer.lastLoginAt, "MMM d, yyyy · h:mm a")}
+                  </p>
+                )}
               </div>
               <div className="px-6 py-4">
                 <CustomerEditForm customer={customer} />

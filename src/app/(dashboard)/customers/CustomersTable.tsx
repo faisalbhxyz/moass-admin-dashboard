@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Search } from "lucide-react";
+import { format } from "date-fns";
 import { CustomerActions } from "./CustomerActions";
 
 type Customer = {
@@ -11,6 +12,7 @@ type Customer = {
   email: string;
   name: string | null;
   phone: string | null;
+  lastLoginAt: Date | string | null;
 };
 
 function buildQuery(params: { page?: number; search?: string }) {
@@ -70,6 +72,7 @@ export function CustomersTable({
                 <th className="h-12 px-4 text-left">Email</th>
                 <th className="h-12 px-4 text-left">Name</th>
                 <th className="h-12 px-4 text-left">Phone</th>
+                <th className="h-12 px-4 text-left">Last login</th>
                 <th className="h-12 w-24 px-2 text-right">Actions</th>
               </tr>
             </thead>
@@ -79,6 +82,9 @@ export function CustomersTable({
                   <td className="h-12 px-4 text-gray-900">{c.email}</td>
                   <td className="h-12 px-4 text-gray-700">{c.name ?? "—"}</td>
                   <td className="h-12 px-4 text-gray-700">{c.phone ?? "—"}</td>
+                  <td className="h-12 px-4 text-gray-600">
+                    {c.lastLoginAt ? format(new Date(c.lastLoginAt), "MMM d, yyyy · h:mm a") : "—"}
+                  </td>
                   <td className="h-12 px-2 text-right">
                     <CustomerActions id={c.id} email={c.email} />
                   </td>

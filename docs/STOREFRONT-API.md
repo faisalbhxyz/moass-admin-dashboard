@@ -661,6 +661,31 @@ console.log("Order placed:", order.orderNumber);
 
 ---
 
+## ৮.৫ বুটস্ট্র্যাপ API (প্রথম লোড)
+
+স্টোরফ্রন্টের প্রথম লোডে একবার কল করলে settings, categories, banners, menus, payment_methods, shipping, pages সব একসাথে আসে। একাধিক API কলের বদলে একটা কল – দ্রুত লোড।
+
+| বিষয় | মান |
+|-------|-----|
+| **Method** | `GET` |
+| **Path** | `/api/ecommerce/bootstrap` |
+
+#### Success Response (200)
+
+```json
+{
+  "settings": { "site_name": "MOASS Store", "currency": "BDT" },
+  "categories": [...],
+  "banners": [...],
+  "menus": [...],
+  "payment_methods": [...],
+  "shipping": [...],
+  "pages": [...]
+}
+```
+
+---
+
 ## ৯. পাবলিক সেটিংস API
 
 সাইটের নাম, কারেন্সি ইত্যাদি সেটিংস (হেডার/ফুটার/কারেন্সি দেখানোর জন্য)।
@@ -807,6 +832,7 @@ console.log("Order placed:", order.orderNumber);
 
 | কাজ | Method | Path |
 |-----|--------|------|
+| **বুটস্ট্র্যাপ (প্রথম লোড)** | GET | `/api/ecommerce/bootstrap` – settings, categories, banners, menus, payment_methods, shipping, pages একসাথে |
 | প্রোডাক্ট লিস্ট | GET | `/api/ecommerce/products` |
 | সিঙ্গেল প্রোডাক্ট | GET | `/api/ecommerce/products/[id]` |
 | ক্যাটাগরি লিস্ট | GET | `/api/ecommerce/categories` |

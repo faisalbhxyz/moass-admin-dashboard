@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { parseSectionConfig } from "@/lib/homepage-sections";
 import { resolveSectionProducts, getSectionTitle } from "@/lib/resolve-homepage-section";
+import { PUBLIC_API_CACHE } from "@/lib/api-cache-headers";
 
 /**
  * স্টোরফ্রন্টের জন্য পাবলিক API – অথেন্টিকেশন লাগে না।
@@ -12,19 +13,20 @@ export async function GET() {
     orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
   });
 
-  const sections: { key: string; title: string; products: Awaited<ReturnType<typeof resolveSectionProducts>> }[] = [];
-
-  for (const row of rows) {
+  const activeRows = rows.filter((row) => {
     const config = parseSectionConfig(row.config);
-    if (!config.is_active) continue;
+    return config.is_active;
+  });
 
-    const products = await resolveSectionProducts(prisma, row);
-    sections.push({
+  const sections = await Promise.all(
+    activeRows.map(async (row) => ({
       key: row.key,
       title: getSectionTitle(row),
-      products,
-    });
-  }
+      products: await resolveSectionProducts(prisma, row),
+    }))
+  );
 
-  return NextResponse.json({ sections });
+  return NextResponse.json({ sections }, {
+    headers: { "Cache-Control": PUBLIC_API_CACHE.short },
+  });
 }

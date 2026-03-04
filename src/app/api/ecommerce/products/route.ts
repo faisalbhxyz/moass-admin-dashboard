@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { PUBLIC_API_CACHE } from "@/lib/api-cache-headers";
 
 /**
  * Public API for storefront – list published products only.
@@ -35,10 +36,14 @@ export async function GET(request: NextRequest) {
       take: limit,
       where,
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-      include: { categories: true },
+      include: {
+        categories: { select: { id: true, name: true, slug: true } },
+      },
     }),
     prisma.product.count({ where }),
   ]);
 
-  return NextResponse.json({ products, total, page, limit });
+  return NextResponse.json({ products, total, page, limit }, {
+    headers: { "Cache-Control": PUBLIC_API_CACHE.short },
+  });
 }

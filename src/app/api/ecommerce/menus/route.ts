@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { menuGroupToJson } from "@/lib/menu";
+import { PUBLIC_API_CACHE } from "@/lib/api-cache-headers";
 
 /**
  * Public API for storefront – footer/header menu groups with items.
@@ -19,5 +20,7 @@ export async function GET(request: NextRequest) {
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
   const menus = groups.map(menuGroupToJson);
-  return NextResponse.json(menus);
+  return NextResponse.json(menus, {
+    headers: { "Cache-Control": PUBLIC_API_CACHE.medium },
+  });
 }

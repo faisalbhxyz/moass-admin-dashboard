@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { PUBLIC_API_CACHE } from "@/lib/api-cache-headers";
 
 /**
  * Public API for storefront – single product by id or slug.
@@ -15,8 +16,12 @@ export async function GET(
       published: true,
       OR: [{ id }, { slug: id }],
     },
-    include: { categories: true },
+    include: {
+      categories: { select: { id: true, name: true, slug: true } },
+    },
   });
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(product);
+  return NextResponse.json(product, {
+    headers: { "Cache-Control": PUBLIC_API_CACHE.short },
+  });
 }

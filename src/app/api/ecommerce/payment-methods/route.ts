@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { PUBLIC_API_CACHE } from "@/lib/api-cache-headers";
 
 /**
  * Public storefront API – list active payment methods sorted by sort_order.
@@ -26,5 +27,7 @@ export async function GET() {
     account_number: m.accountNumber,
     logo_url: m.logoUrl,
   }));
-  return NextResponse.json({ payment_methods });
+  return NextResponse.json({ payment_methods }, {
+    headers: { "Cache-Control": PUBLIC_API_CACHE.long },
+  });
 }

@@ -27,7 +27,7 @@ export async function resolveSectionProducts(
     pinnedIds.length > 0
       ? await prisma.product.findMany({
           where: { id: { in: pinnedIds }, published: true },
-          include: { categories: true },
+          include: { categories: { select: { name: true } } },
         })
       : [];
   const pinnedMap = new Map(pinnedProducts.map((p) => [p.id, p]));
@@ -72,7 +72,7 @@ export async function resolveSectionProducts(
       where,
       orderBy: { createdAt: "desc" },
       take: takeAuto * 2,
-      include: { categories: true },
+      include: { categories: { select: { name: true } } },
     });
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - config.auto_days);
@@ -90,7 +90,7 @@ export async function resolveSectionProducts(
           id: { in: productIds },
           ...(config.auto_category ? { categories: { some: { id: config.auto_category } } } : {}),
         },
-        include: { categories: true },
+        include: { categories: { select: { name: true } } },
       });
       const salesMap = new Map(sold.map((s) => [s.productId, s._sum.quantity ?? 0]));
       rows.sort((a, b) => (salesMap.get(b.id) ?? 0) - (salesMap.get(a.id) ?? 0));
@@ -101,7 +101,7 @@ export async function resolveSectionProducts(
       where,
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       take: takeAuto,
-      include: { categories: true },
+      include: { categories: { select: { name: true } } },
     });
     autoProducts = rows as ProductRow[];
   }

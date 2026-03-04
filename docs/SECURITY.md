@@ -99,8 +99,9 @@ Content-Type: application/json
 
 ## ৫. পাবলিক (স্টোরফ্রন্ট) API এন্ডপয়েন্ট
 
-কোনো অথেন্টিকেশন নেই।
+কোনো অথেন্টিকেশন নেই। এই API গুলোতে **কেবল পাবলিক, নন-সেনসিটিভ ডেটা** cache করা হয় (Cache-Control, unstable_cache)। অ্যাডমিন বা কাস্টমার-স্পেসিফিক ডেটা কখনো cache হয় না।
 
+- `GET` `/api/ecommerce/bootstrap` (প্রথম লোড – settings, categories, banners, menus, payment_methods, shipping, pages)  
 - `GET` `/api/ecommerce/products`  
 - `GET` `/api/ecommerce/products/[id]`  
 - `GET` `/api/ecommerce/categories`  

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { PUBLIC_API_CACHE } from "@/lib/api-cache-headers";
 
 /**
  * Public API for storefront – list all content pages (slug, title) for links.
@@ -11,5 +12,7 @@ export async function GET() {
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     select: { id: true, slug: true, title: true },
   });
-  return NextResponse.json(pages);
+  return NextResponse.json(pages, {
+    headers: { "Cache-Control": PUBLIC_API_CACHE.medium },
+  });
 }

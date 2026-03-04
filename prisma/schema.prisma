@@ -57,6 +57,9 @@ model Product {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   orderItems       OrderItem[]
+
+  @@index([published, sortOrder, createdAt])
+  @@index([published, stock])
 }
 
 model Banner {
@@ -81,17 +84,18 @@ model StoredImage {
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String?
-  name      String?
-  phone     String?
-  address   String?
-  points    Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  orders    Order[]
-  rewards   CustomerReward[]
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String?
+  name        String?
+  phone       String?
+  address     String?
+  points      Int       @default(0)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  orders      Order[]
+  rewards     CustomerReward[]
   searchHistory UserSearchHistory[]
 }
 
@@ -202,6 +206,9 @@ model Order {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   items            OrderItem[]
+
+  @@index([createdAt])
+  @@index([status, createdAt])
 }
 
 model OrderItem {

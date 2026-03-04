@@ -64,6 +64,7 @@ export async function apiPost(path: string, body: object) {
 | হোম/প্রোডাক্ট লিস্ট | `GET /api/ecommerce/products` | `apiGet("/api/ecommerce/products", { page: "1", limit: "12" })` |
 | প্রোডাক্ট ডিটেইল | `GET /api/ecommerce/products/[id]` বা `[slug]` | `apiGet("/api/ecommerce/products/blue-tshirt")` |
 | ক্যাটাগরি মেনু/ফিল্টার | `GET /api/ecommerce/categories` | `apiGet("/api/ecommerce/categories")` |
+| **প্রথম লোড (সব একসাথে)** | `GET /api/ecommerce/bootstrap` | `apiGet("/api/ecommerce/bootstrap")` – settings, categories, banners, menus, payment_methods, shipping, pages |
 | হোম ব্যানার | `GET /api/ecommerce/banners` | `apiGet("/api/ecommerce/banners")` |
 | চেকআউটে শিপিং অপশন | `GET /api/ecommerce/shipping` | `apiGet("/api/ecommerce/shipping")` |
 | সাইট নাম/কারেন্সি | `GET /api/ecommerce/settings` | `apiGet("/api/ecommerce/settings")` |
@@ -87,6 +88,7 @@ export async function apiPost(path: string, body: object) {
 
 | কাজ | Method | Path |
 |-----|--------|------|
+| **বুটস্ট্র্যাপ (প্রথম লোড)** | GET | `/api/ecommerce/bootstrap` |
 | প্রোডাক্ট লিস্ট | GET | `/api/ecommerce/products` |
 | সিঙ্গেল প্রোডাক্ট (id বা slug) | GET | `/api/ecommerce/products/[id]` |
 | ক্যাটাগরি লিস্ট | GET | `/api/ecommerce/categories` |
