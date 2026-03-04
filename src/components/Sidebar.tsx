@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -79,6 +79,15 @@ export function Sidebar({
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
 
+  useEffect(() => {
+    if (pathname === "/orders" || pathname.startsWith("/orders/")) {
+      sessionStorage.setItem("sidebar_orders_last_seen", String(newOrdersCount));
+    }
+    if (pathname === "/transactions" || pathname.startsWith("/transactions/")) {
+      sessionStorage.setItem("sidebar_transactions_last_seen", String(pendingTransactionsCount));
+    }
+  }, [pathname, newOrdersCount, pendingTransactionsCount]);
+
   const filteredNav = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return mainNav;
@@ -125,7 +134,16 @@ export function Sidebar({
                 : badgeKey === "pendingTransactions"
                   ? pendingTransactionsCount
                   : 0;
-          const showBadge = badgeCount > 0 && !active;
+          const lastSeen =
+            typeof window !== "undefined"
+              ? badgeKey === "newOrders"
+                ? parseInt(sessionStorage.getItem("sidebar_orders_last_seen") ?? "0", 10)
+                : badgeKey === "pendingTransactions"
+                  ? parseInt(sessionStorage.getItem("sidebar_transactions_last_seen") ?? "0", 10)
+                  : 0
+              : 0;
+          const hasNewSinceSeen = badgeKey === "lowStock" ? true : badgeCount > lastSeen;
+          const showBadge = badgeCount > 0 && !active && hasNewSinceSeen;
           return (
             <Link
               key={href}
