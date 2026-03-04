@@ -54,6 +54,7 @@ const getPendingTransactionsCount = unstable_cache(
         .count({
           where: {
             paymentMethodId: { not: null },
+            paymentMethod: { type: { not: "COD" } },
             status: "pending",
           },
         })

@@ -17,8 +17,11 @@ export default async function TransactionsPage({
   const currentPage = Math.max(1, parseInt(page ?? "1", 10));
   const pageSize = 10;
 
-  // Only orders that have a payment method (payment was selected at checkout)
-  const baseWhere = { paymentMethodId: { not: null } };
+  // Only orders with a non-COD payment method (Cash on Delivery does not appear in transactions)
+  const baseWhere = {
+    paymentMethodId: { not: null },
+    paymentMethod: { type: { not: "COD" } },
+  };
   const statusFilter = status === "verified" ? "paid" : status === "pending" ? "pending" : undefined;
   const where = {
     ...baseWhere,
