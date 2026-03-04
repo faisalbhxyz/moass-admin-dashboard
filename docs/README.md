@@ -116,6 +116,7 @@ export async function apiPost(path: string, body: object) {
 | ডকুমেন্ট | কখন দেখবেন |
 |----------|-------------|
 | **[STOREFRONT-API.md](STOREFRONT-API.md)** | প্রতিটি API-র পূর্ণ বিবরণ, query/body, রেসপন্স উদাহরণ, ডেটা টাইপ, চেকআউট ফ্লো, CORS। |
+| **[STOREFRONT-LANDING-PAGES.md](STOREFRONT-LANDING-PAGES.md)** | প্রোডাক্ট ল্যান্ডিং পেজ — `landing/[slug]` রাউট, প্রোডাক্ট ডিটেইল + চেকআউট এক পেজেই, ইমপ্লিমেন্টেশন গাইড। |
 | **[SECURE-CONNECTION.md](SECURE-CONNECTION.md)** | অ্যাডমিন ও স্টোরফ্রন্ট সুরক্ষিত সংযোগের চেকলিস্ট, CORS সেটআপ, কি করবেন/করবেন না। |
 | **[SECURITY.md](SECURITY.md)** | অ্যাডমিন vs স্টোরফ্রন্ট প্রটেকশন, লগইন/মি/পাসওয়ার্ড API, প্রটেক্টেড অ্যাডমিন API তালিকা। |
 

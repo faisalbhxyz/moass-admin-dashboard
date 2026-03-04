@@ -57,9 +57,19 @@ model Product {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   orderItems       OrderItem[]
+  landingPages     ProductLandingPage[]
 
   @@index([published, sortOrder, createdAt])
   @@index([published, stock])
+}
+
+model ProductLandingPage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
 }
 
 model Banner {

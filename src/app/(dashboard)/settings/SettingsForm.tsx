@@ -11,6 +11,7 @@ export function SettingsForm({ initial }: { initial: Record<string, string> }) {
   const [currency, setCurrency] = useState(initial.currency ?? "BDT");
   const [lowStockThreshold, setLowStockThreshold] = useState(initial.low_stock_threshold ?? "5");
   const [paymentGateway, setPaymentGateway] = useState(initial.payment_gateway ?? "{}");
+  const [storefrontBaseUrl, setStorefrontBaseUrl] = useState(initial.storefront_base_url ?? "");
   const [saving, setSaving] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -25,6 +26,7 @@ export function SettingsForm({ initial }: { initial: Record<string, string> }) {
           currency,
           low_stock_threshold: lowStockThreshold,
           payment_gateway: paymentGateway,
+          storefront_base_url: storefrontBaseUrl,
         }),
       });
       if (res.ok) {
@@ -64,6 +66,17 @@ export function SettingsForm({ initial }: { initial: Record<string, string> }) {
               onChange={(e) => setCurrency(e.target.value)}
               className={inputClass}
             />
+          </div>
+          <div>
+            <label className={labelClass}>Storefront base URL</label>
+            <input
+              type="url"
+              value={storefrontBaseUrl}
+              onChange={(e) => setStorefrontBaseUrl(e.target.value)}
+              placeholder="https://shop.example.com"
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs text-gray-500">Used for landing page links. No trailing slash.</p>
           </div>
           <div>
             <label className={labelClass}>Low stock threshold</label>

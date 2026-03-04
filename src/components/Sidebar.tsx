@@ -24,6 +24,7 @@ import {
   List,
   FileText,
   Receipt,
+  ExternalLink,
 } from "lucide-react";
 
 function LogoutButton() {
@@ -57,6 +58,7 @@ const mainNav = [
   { href: "/homepage/sections", label: "Homepage Sections", icon: LayoutList },
   { href: "/menus", label: "Menus", icon: List },
   { href: "/pages", label: "Pages", icon: FileText },
+  { href: "/landing-pages", label: "Landing Page", icon: ExternalLink },
   { href: "/shipping", label: "Shipping", icon: Truck },
   { href: "/payment-methods", label: "Payment Methods", icon: CreditCard },
   { href: "/reports", label: "Reports", icon: BarChart3 },
